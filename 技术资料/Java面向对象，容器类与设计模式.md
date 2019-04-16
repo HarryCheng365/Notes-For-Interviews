@@ -60,8 +60,7 @@ Java本身基础知识
   		}
   ```
 
-  
-
+- ![ç±"ççå½å¨æ-11.2kB](http://static.zybuluo.com/Rico123/5l9j3f8eenb2v9dudcqby2v3/%E7%B1%BB%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F)
 
 **常用的几个Math函数**
 
