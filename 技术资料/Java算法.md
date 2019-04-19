@@ -143,13 +143,49 @@
               //设置新的增量
               incrementNum = incrementNum/2;
           }
-      }
+      }//也是交换排序的一种，希尔排序
   ```
 
 - 归并排序(分治法的典型应用)
 
   ```
+  int nums[]=new int[100];
+  public void merge(){
+      
+  }
+  ```
+
+  用归并要有额外的O(n)空间
+
+- 快速排序
+
+  ```java
+  public void quickSort(int arr[],int left,int right){
+      if(arr=null)
+      return;
+      while(left<right){
+          int pivot=partition(arr,left,right);
+          quickSort(arr,left,pivot-1);
+          quickSort(arr,pivot+1,right);
+      }  
+  }
   
+  private int partition(int[] arr,int left,int right){
+      int temp=arr[left];
+      while(left<right){
+          while(left<right&&arr[right]>temp)
+              --right;//继续查找，看看有没有不一样的
+          // 如果有右值大于等于temp 这个基数 这时候就打断了
+          arr[left]=arr[right];
+          
+          while(left<right&&arr[left]<=temp)
+              ++left;
+          arr[right]=arr[left];
+          
+      }
+      arr[left]==temp;
+      return left;
+  }
   ```
 
   
@@ -220,6 +256,28 @@
   }
   
   ```
+
+  二分查找
+
+  ```java
+  public int BinarySearch(int arr[],int value,int low,int high){
+      if(arr==null)
+          return -1;
+      if(low>high)
+          return -1;
+      int mid=(low+hight)/2;
+      if(arr[mid]==value)
+          return mid;
+      if(arr[mid]>value)
+          return BinarySearch(arr,value,low,mid-1);
+      if(arr[mid]<value)
+          return BinarySearch(arr,value,mid+1,high);
+  }
+  
+  二分查找的前提是数组必须有序。
+  ```
+
+  
 
 - 插值查找
 
