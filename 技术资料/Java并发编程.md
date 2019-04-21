@@ -1081,7 +1081,7 @@ synchronized在发生异常时，会自动释放线程占有的锁，因此不�
 
 #### Lock接口与实现关系
 
-![2446D75C-8BDF-4AFC-9F17-47D14BFD483B](/Users/Haoyu/Desktop/2446D75C-8BDF-4AFC-9F17-47D14BFD483B.png)
+![2446D75C-8BDF-4AFC-9F17-47D14BFD483B](assets/2446D75C-8BDF-4AFC-9F17-47D14BFD483B.png)
 
 ```
 可以看到lock有由lock产生的condition实例接口

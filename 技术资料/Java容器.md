@@ -88,7 +88,7 @@ public class MyArrayList {
 
 # HashSet
 
-​	HashSet的底层实现就是HashMap，不过将set中存储的对象以key的形式存储在map中（key对应的value是一个定义好的final对象），由于map中key不能重复，以此实现set中元素不重复。
+​	HashSet的底层实现就是HashMap，不过将set中存储的对象以key的形式存储在map中（key对应的value是一个定义好的final对象），由于map中key不能重复，以此实现set中元素不重复,且不存在null key 不然会报空指针错误
 
 
 
