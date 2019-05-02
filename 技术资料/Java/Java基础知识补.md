@@ -8,7 +8,9 @@ Java本身基础知识
 
   ```
   可以的
-  比如Clone();方式
+  比如Clone();
+  重写clone()类一定要重写equals()类
+  重写equals()类 如果要用到HashMap或者HashSet等数据结构 一定要重写hashcode()方法
   ```
 
   

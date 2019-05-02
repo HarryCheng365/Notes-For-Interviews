@@ -12,7 +12,7 @@
 
 jvm主要由class loader、runtime data area、excution engine和native interface四部分组成，其结构图如下：
 
-![](assets/jvm%20%E7%BB%93%E6%9E%84.png)
+![](../assets/jvm%20%E7%BB%93%E6%9E%84.png)
 
 ​	其中：
 
@@ -92,7 +92,7 @@ java方法执行的内存模型，线程私有✅
 
 所有的对象实例都在此分配空间，所以Java堆一定是线程共享的，并且对内存消耗较大，因此不一定非要是物理连续， 另外Java堆在实现的时候，一定要是可扩展的，否则就会抛出异常，因为所有对象实例都在此分配空间，所以也是GC的重灾区，也叫GC堆
 
-### ![](assets/堆.png)
+### ![](../assets/堆.png)
 
 ```
 1.Java堆的唯一目的就是存放对象实例，几乎所有的对象实例（和数组）都在这里分配内存。

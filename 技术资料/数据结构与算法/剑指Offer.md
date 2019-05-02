@@ -2,15 +2,72 @@
 
 剑指Offer中题出现的频率很高
 
-### 1. 二维数组查找
 
-```
 
-```
-
-### 2. 替换空格
+### 1. 二维数组查找 ✅
 
 ```java
+//二维数组的二分搜索，多维的二分搜索，关键就在一个部分有序或者的列表里，找到一个有序序列并排除掉，比如
+//1 2 8 9
+//2 4 9 12 这种二维数组 就是 1 2 8 9 （拐个弯）12有序 
+//有序 二分，某种形式的二分，可以是自己找二分点，也可能是题目中给出了二分点。
+//当然除了递归的做法，还有迭代的做法，这点就不多说了，我做过
+//对了，当然可以把每一行看成一维数组，然后通过检查头尾的方式 排除掉不符合条件的行 然后查找
+//当然了，还有一种变形，就是查找数组中第k大的元素。可以用这个选取右上角的方式，进行变形。
+public class Solution {
+    public boolean Find(int target, int [][] array) {
+        if(array==null||array.length==0||array[0].length==0)
+            return false;
+        int rowLength=array[0].length;
+        int lineLength=array.length;
+        if(target>array[lineLength-1][rowLength-1])
+            return false;
+        return search(array,rowLength-1,0,target);
+
+    }
+    
+    public boolean search(int [][]array,int row,int line,int target){
+        if(row<0||line>array.length-1)
+            return false;
+        if(array[line][row]==target)
+            return true;
+        if(array[line][row]>target)
+            return search(array,row-1,line,target);
+        if(array[line][row]<target)
+            return search(array,row,line+1,target);
+        return false;
+    }
+        
+    
+}
+```
+
+### 2. 替换空格 ✅
+
+```java
+//我自己写的
+public class Solution {
+    public String replaceSpace(StringBuffer str) {
+        if(str.length()<=0)
+            return "";
+        int length=str.length();
+        StringBuilder strb = new StringBuilder();
+        for(int i =0;i<length;i++){
+            if(str.charAt(i)==' '){
+                strb.append('%');
+                strb.append('2');
+                strb.append('0');
+            }
+            else
+                strb.append(str.charAt(i));    
+        }
+        return strb.toString();
+ 	
+    }
+}
+//第一种思路：时间复杂度O(n) 空间复杂度O(n)，其实思路我已经体会到了 String 在Java里是一个final类型，所以 每次对String
+//的更改，都需要对String进行一个copy 再生成一个新的final类型的值
+//第二种思路：扫描一遍数组先，不对，数组扩容还是要copy，不如用可变数组，更简单
 public class Solution {
     public String replaceSpace(StringBuffer str) {
         if(str==null){
@@ -33,7 +90,7 @@ public class Solution {
 //其实主要是熟悉 StringBuffer和StringBuilder这两个类的操作
 ```
 
-### 3.从尾到头输出链表值
+### 3.从尾到头输出链表值 ✅
 
 ```java
 import java.util.*;
@@ -53,9 +110,31 @@ public class Solution {
         return list;    
     }
 }
+//递归本质上就是一个栈结构，于是很自然地想到了用递归来实现，而这个递归，可以参考二叉树的后序遍历
+//只不过这里把思想用在了单链表上。
+import java.util.ArrayList;
+public class Solution {
+    public ArrayList<Integer> printListFromTailToHead(ListNode listNode) {
+        ArrayList<Integer> list = new ArrayList<Integer>();
+        if(listNode==null)
+            return list;
+        return print(list,listNode);
+       
+    }
+    
+    public ArrayList<Integer> print(ArrayList<Integer> list ,ListNode listNode){
+        if(listNode.next==null){
+            list.add(listNode.val);
+            return list;
+        }
+        print(list,listNode.next);
+        list.add(listNode.val);
+        return list;                
+    }
+}
 ```
 
-### 4.前序和中序遍历 重建二叉树
+### 4.前序和中序遍历 重建二叉树 ✅
 
 ```java
 public class Solution {
@@ -75,19 +154,53 @@ public class Solution {
      
       public TreeNode preIn(int[] p,int pi,int pj,int[] n,int ni,int nj,java.util.HashMap<Integer,Integer> map){
  
-        if(pi>pj){
+        if(pi>pj||ni>nj){
             return null;
         }
         TreeNode head=new TreeNode(p[pi]);
-        int index=map.get(p[pi]);
+        int index=map.get(p[pi]);//是的 我就在想怎么省去查找这一步
         head.left=preIn(p,pi+1,pi+index-ni,n,ni,index-1,map);
         head.right=preIn(p,pi+index-ni+1,pj,n,index+1,nj,map);
+          //这是把左右子树列出来了 ni是最左值，也是起始值
+          //如果pi+index-n1+1 取根的右面，如果小了
         return head;
     }
 }
+
+
+//第二种解法，其实就是分别找到左右子树，然后通过遍历for循环来找到根结点，if(in[i]==pre[startPre])是用来找到根结点的，但是可以用 一个hashmap来替代
+//其实这个题，就是寻找到左右子树，对根结点进行建树的操作，自顶而上的。
+//主要搞明白左右结点的位置
+public class Solution {
+    public TreeNode reConstructBinaryTree(int [] pre,int [] in) {
+        TreeNode root=reConstructBinaryTree(pre,0,pre.length-1,in,0,in.length-1);
+        return root;
+    }
+    //前序遍历{1,2,4,7,3,5,6,8}和中序遍历序列{4,7,2,1,5,3,8,6}
+    private TreeNode reConstructBinaryTree(int [] pre,int startPre,int endPre,int [] in,int startIn,int endIn) {
+         
+        if(startPre>endPre||startIn>endIn)
+            return null;
+        TreeNode root=new TreeNode(pre[startPre]);
+         
+        for(int i=startIn;i<=endIn;i++)
+            if(in[i]==pre[startPre]){
+                root.left=reConstructBinaryTree
+                (pre,startPre+1,startPre+i-startIn,in,startIn,i-1);
+                root.right=reConstructBinaryTree
+                (pre,i-startIn+startPre+1,endPre,in,i+1,endIn);
+                      break;
+            }
+                 
+        return root;
+    }
+}
+
+//二叉树前序遍历的迭代实现
+
 ```
 
-### 5.旋转数组最小数字
+### 5.旋转数组最小数字 ✅
 
 ```java
 import java.util.ArrayList;
@@ -106,9 +219,11 @@ public class Solution {
 }
 ```
 
-### 6.斐波那契数列
+### 6.斐波那契数列 ✅
 
 ```java
+//递归是不带记忆的，考虑到带记忆的解法，所以往dp上靠拢，找到父子状态的转移方程，所以
+//dp一般是不递归的
 public class Solution {
     public int Fibonacci(int n) {
         if(n<=0)
@@ -119,11 +234,28 @@ public class Solution {
             return Fibonacci(n-1)+Fibonacci(n-2);
     }
 }
+//带记忆的斐波那契数列，不用递归的方法，用遍历方式做，其实一样，就是找到
+//子父状态的转移
+public class Solution {
+    public int Fibonacci(int n) {
+        if(n==0)
+            return 0;
+        if(n==1)
+            return 1;       
+        int []result =new int[n+1];
+        result[0]=0;
+        result[1]=1;
+        for(int i=2;i<result.length;i++){
+            result[i]=result[i-1]+result[i-2];
+        }
+        return result[n];
+    }
+}
 ```
 
-### 7.跳台阶
+### 7.跳台阶✅
 
-```
+```java
 public class Solution {
     public int JumpFloor(int target) {
         if(target <= 0) return 0;
@@ -140,15 +272,58 @@ public class Solution {
         return result;
     }
 }
+//这种简单dp 找到父子状态转移方程就好了。
+public class Solution {
+    public int JumpFloor(int target) {
+        
+        int []coin = {1,2};
+        
+        int []result=new int[target+1];
+        if(target==0)
+            return 0;
+        if(target==1)
+            return 1;
+        if(target==2)
+            return 2;
+        result[0]=0;
+        result[1]=1;
+        result[2]=2;
+        for(int i=3;i<result.length;i++){
+            for(int j=0;j<coin.length;j++){
+                result[i]+=result[i-coin[j]];
+            }
+        }
+        return result[target];
+    }
+}
+
 ```
 
-### 8.跳台阶2
+### 8.跳台阶2✅
 
+```java
+//这个也是非递归 带记忆的dp 找到子父状态转移方程就好
+public class Solution {
+    public int JumpFloorII(int target) {
+        if(target==0)
+            return 0;
+        if(target==1)
+            return 1;
+        
+        int []result=new int[target+1];
+        result[0]=1;
+        result[1]=1;
+        for(int i=2;i<result.length;i++){
+            for(int j=i;j>0;j--){
+                result[i]+=result[i-j];
+            }
+        }
+        return result[target];      
+    }
+}
 ```
 
-```
-
-### 9.矩形覆盖
+### 9.矩形覆盖✅
 
 ```java
 我们可以用2*1的小矩形横着或者竖着去覆盖更大的矩形。请问用n个2*1的小矩形无重叠地覆盖一个2*n的大矩形，总共有多少种方法？
@@ -161,11 +336,14 @@ public class Solution {
         if(target==2)
             return 2;
         return RectCover(target-1)+RectCover(target-2);
-    }
+    }//要么用2的边，要么用1的边，也是个dp问题。要么横着 要么竖着，不可能横竖在一起，所以这道题理解有
+    //点难
 }其实是个理解问题
+
+
 ```
 
-### 10.二进制中1的个数
+### 10.二进制中1的个数 ✅
 
 ```java
 public class Solution {
@@ -195,7 +373,7 @@ public class Solution {
 或者
 ```
 
-### 12.调整数组顺序使奇数位于偶数前面
+### 12.调整数组顺序使奇数位于偶数前面 ✅
 
 ```java
 //冒泡排序变形
@@ -219,7 +397,7 @@ public class Solution {
 }
 ```
 
-### 13.链表中倒数第k个结点
+### 13.链表中倒数第k个结点 ✅
 
 ```java
 import java.util.*;
@@ -243,17 +421,89 @@ public class Solution {
         return newStack.pop();       
     }      
 }
+
+//当然，可以用递归进行实现，但这里涉及到了一个传值，传引用的问题
+//java中，执行方法之前，编译器会将参数的值压入堆栈之中，其中引用数据类型压入的为
+//引用变量的地址。方法结束后，编译器会将之前压入堆栈的引用变量的地址重新赋值给引用变量
+//故而java中的方法不能改变引用变量参数的地址，除非包裹在一个上层容器中，进而指向同一个对象，
+//仅仅改变同一个对象的属性值
+
+//递归实现版本，其实是参考了 反转链表，因为肯定要用到栈的结构
+import java.util.*;
+public class Solution {
+    public ListNode FindKthToTail(ListNode head,int k) {
+        if(k<=0||head==null)
+            return null;
+        ArrayList<ListNode> list = new ArrayList<>();
+        int temp=Find(head,k,list);
+        if(temp<k)
+            return null;
+        else
+            return list.get(0);
+
+    }
+    public int Find(ListNode head,int k, ArrayList<ListNode> list){
+        if(head==null)
+            return 0;
+        int temp = Find(head.next,k,list);
+        temp++;
+        if(temp==k)
+            list.add(head);
+        return temp;
+    }
+}
+
 ```
 
-### 14.反转链表 
+### 14.反转链表 ✅
 
+```java
+//递归实现
+public class Solution {
+    public ListNode ReverseList(ListNode head) {
+        if(head==null)
+            return head;
+        return reverse(head);
+
+    }
+    
+    public ListNode reverse(ListNode head){
+        if(head.next==null)
+            return head;
+        
+        ListNode temp =reverse(head.next);
+        head.next.next =head;
+        head.next=null;
+        return temp;
+        
+    }
+}
+
+//非递归实现
+
+public class Solution {
+    public ListNode ReverseList(ListNode head) {
+       if(head==null)
+           return head;
+       ListNode tempHead=head;
+       ListNode pre =null;
+        while(tempHead.next!=null){
+            ListNode next=tempHead.next;
+            tempHead.next=pre;
+            pre=tempHead;
+            tempHead=next;
+        }
+        tempHead.next=pre;
+        return tempHead;
+
+    }  
+}
+//不要一步迈的脚步太大了！
 ```
-Leetcode刷过
-```
 
 
 
-### 15.合并两个排序链表 
+### 15.合并两个排序链表 ✅ 
 
 ```
 Leetcode刷过
@@ -317,13 +567,13 @@ public class Solution {
 }
 ```
 
-### 18.顺时针打印矩阵 ✅
+### 18.顺时针打印矩阵 ⚠️
 
 ```
 没什么技术含量，就是个数学问题
 ```
 
-19.包含Min数的栈
+### 19.包含Min数的栈
 
 ```java
 用PriorityQueue 和 栈两个容器实现
@@ -364,7 +614,7 @@ public class Solution {
 }
 ```
 
-### 19.出栈，入栈序列 ✅
+### 19.出栈，入栈序列 ⚠️
 
 ```java
 import java.util.ArrayList;
@@ -439,13 +689,13 @@ public class Solution {
 }
 ```
 
-### 22.二叉树中和为某一值的路径 ✅
+### 22.二叉树中和为某一值的路径 ⚠️
 
 ```
 
 ```
 
-### 23.复杂链表的复制 ✅
+### 23.复杂链表的复制 ⚠️
 
 ```java
 *解题思路：
@@ -491,10 +741,10 @@ public class Solution {
 }
 ```
 
-### 24.二叉搜索树转为双向链表 ✅
+### 24.二叉搜索树转为双向链表 ⚠️
 
 ```java
-用栈，然后一个pre标记上一个结点,和反转链表一致
+//用栈，然后一个pre标记上一个结点,和反转链表一致
 import java.util.*;
 public class Solution {
     public TreeNode Convert(TreeNode root) {
@@ -526,10 +776,11 @@ public class Solution {
 }
 ```
 
-### 25.数组中出现次数超过一半的数字
+### 25.数组中出现次数超过一半的数字 ✅
 
 ```java
 import java.util.*;
+//排序的时间复杂度 至少为nlogn 显然不是面试官要的解法
 public class Solution {
     public int MoreThanHalfNum_Solution(int [] array) {
         int len=array.length;
@@ -549,11 +800,13 @@ public class Solution {
         return num;
     }
 }
+//那么怎么用
 ```
 
-### 26.最小的K个数
+### 26.最小的K个数 ✅ 
 
 ```java
+
 import java.util.*;
 public class Solution {
     public ArrayList<Integer> GetLeastNumbers_Solution(int [] input, int k) {
@@ -579,7 +832,9 @@ public class Solution {
 }
 ```
 
-### 27.最大连续子序列的和
+### 27.最大连续子序列的和 ✅
+
+还有变种，最长连续子序列的和，再搞一个数组存每个长度的最长值就可以了
 
 ```java
 
@@ -603,8 +858,26 @@ public class Solution {
     }
 }
 //很简单，
-
-
+//dp我的思想是对了，但是有一点就是能一个for循环内比较完的，一定要一个for循环内比较完毕。
+//还有就是关于dp的两层循环还是一层循环 这种
+public class Solution {
+    public int FindGreatestSumOfSubArray(int[] array) {
+        if(array==null||array.length==0)
+            return 0;
+        if(array.length==1)
+            return array[0];
+        int []result =new int[array.length];
+        result[0]=array[0];
+        result[1]=array[1];
+        int max=Integer.MIN_VALUE;
+        for(int i=1;i<array.length;i++){ 
+           result[i]=Math.max(result[i-1]+array[i],array[i]);   
+             max=Math.max(max,result[i]);
+        }
+       return max;
+        
+    }
+}
 dp解法：
 public  int FindGreatestSumOfSubArray(int[] array) {
         int res = array[0]; //记录当前所有子数组的和的最大值
@@ -641,7 +914,7 @@ public class Solution {
 //笑死我了 java真强大 转换成字符，把输入的n 一个个看就好了，哈哈哈哈哈哈
 ```
 
-### 29.把数组从小到大排序
+### 29.把字符数组从小到大排序 重写comparator
 
 ```java
 public String PrintMinNumber(int [] numbers) {
@@ -680,7 +953,7 @@ public String PrintMinNumber(int [] numbers) {
 
 
 
-### 31.两个链表的第一个公共结点
+### 31.两个链表的第一个公共结点 
 
 ```java
 public class Solution {
@@ -721,9 +994,10 @@ public class Solution {
 
 
 
-### 32.丑数
+### 32.丑数 ⚠️
 
 ```java
+//出队列，又重新入队列的操作
 public class Solution {
     public int GetUglyNumber_Solution(int index) {
      
@@ -744,7 +1018,7 @@ public class Solution {
             if(tmp==result[i5]*5) i5++;
             result[++count]=tmp;
         }
-        return result[index - 1];
+        return result[index - 1];//这个也不算动态规划吧，其实就是不重复的全排列？
     }
  
     private int min(int a, int b) {
@@ -754,20 +1028,130 @@ public class Solution {
 
 ```
 
-### 33.快排
+### 33.长为n最大为n的数组中的重复数字
+
+```java
+//hashmap做
+//或者干脆用
+```
 
 
 
-### 34.归并排序
+### 34.两个栈实现队列 ✅
+
+```java
+//其实真的很简单，就是 利用stack2作为stack1的反转
+import java.util.Stack;
+
+public class Solution {
+    Stack<Integer> stack1 = new Stack<Integer>();
+    Stack<Integer> stack2 = new Stack<Integer>();
+    
+    public void push(int node) {
+        stack1.push(node);
+        
+    }
+    
+    public int pop() {
+        if(!stack2.isEmpty())
+            return stack2.pop();
+        else{
+            while(!stack1.isEmpty()){
+                stack2.push(stack1.pop());
+            }
+            return stack2.pop();
+        }
+            
+    
+    }
+}
+```
+
+### 35.第一个只出现一次的字符 
+
+```
+
+```
 
 
 
-### 35.堆排序
+### 36.快排 ✅
+
+```java
+public void sort(int arr[]){
+    if(arr==null)
+        return;
+    quicksort(arr,0,arr.length-1);
+}
+//这个partition分治的思想非常重要！
+public void quicksort(int arr[],int left,int right){
+    if(left<right){
+        int pivot=partition(arr,left,right);
+        quicksort(arr,left,pivot-1);
+        quicksort(arr,pivot+1,right);
+    }
+    
+}
+public int partition(int arr[],int left,int right){
+    int temp=arr[left];
+    while(left<right){
+        while(left<right&&arr[right]>temp)
+            --right;
+        arr[left]=arr[right];
+        while(left<right&&arr[left]<temp)
+            ++left;
+        arr[right]=arr[left];
+    }
+    arr[left]=temp;
+    return left;
+}
+
+//还有指针交换的方法
+```
+
+
+
+### 37.旋转数组的最小数字
+
+```java
+//双指针技巧
+```
+
+
+
+### 38.归并排序
+
+
+
+### 堆排序
 
 
 
 
 
-### 36.补充
+# 海量数据类题目
+
+### 两个大文件求重复
+
+给定a、b两个文件，各存放50亿个url，每个url各占64字节，内存限制是4G，让你找出a、b文件共同的url？
+
+<http://www.sohu.com/a/278216703_652662>
+
+方案1：可以估计每个文件安的大小为5G×64=320G，远远大于内存限制的4G。所以不可能将其完全加载到内存中处理。考虑采取分而治之的方法。
+
+遍历文件a，对每个url求取hash(url)%1000，然后根据所取得的值将url分别存储到1000个小文件（记为a0,a1,...,a999）中。这样每个小文件的大约为300M。
+
+遍历文件b，采取和a相同的方式将url分别存储到1000小文件（记为b0,b1,...,b999）。这样处理后，所有可能相同的url都在对应的小文件（a0vsb0,a1vsb1,...,a999vsb999）中，不对应的小文件不可能有相同的url。然后我们只要求出1000对小文件中相同的url即可。
+
+求每对小文件中相同的url时，可以把其中一个小文件的url存储到hash_set中。然后遍历另一个小文件的每个url，看其是否在刚才构建的hash_set中，如果是，那么就是共同的url，存到文件里面就可以了。
+
+方案2：如果允许有一定的错误率，可以使用Bloom filter，4G内存大概可以表示340亿bit。将其中一个文件中的url使用Bloom filter映射为这340亿bit，然后挨个读取另外一个文件的url，检查是否与Bloom filter，如果是，那么该url应该是共同的url（注意会有一定的错误率）。
+
+
+
+### 海量整数找到不重复的整数
 
 T级大小AB文档，2g内存，要求找出重合部分的数据(分治的思路答出来了，然而思路偏到bitmap上去了，其实就是简单的在uid上通过哈希分组保证每次两组比较一次无需复用即可)
+
+
+
