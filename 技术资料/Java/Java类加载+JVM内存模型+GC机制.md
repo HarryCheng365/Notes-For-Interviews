@@ -16,10 +16,10 @@ jvm主要由class loader、runtime data area、excution engine和native interfac
 
 ​	其中：
 
-- class loader用于将class文件加载到内存
-- runtime data area是jvm内存空间结构模型
-- excution engine用于对java字节码文件进行解析
-- native interface融合不同开发语言的原生库为java所用
+- class loader 用于将class文件加载到内存
+- runtime data area 是jvm内存空间结构模型
+- excution engine 用于对java字节码文件进行解析
+- native interface 融合不同开发语言的原生库为java所用
 
 ```
 Java虚拟机再执行Java程序的过程中会把它所管理的内存划分为若干个不同的数据区域
@@ -127,6 +127,8 @@ CAS是在里面怎么用的，
 
 
 ### 方法区
+
+方法区：静态域，运行常量池，可以GC，但是归属于MajorGC的一部分，并且有严苛的GC条件
 
 ```
 方法区与java堆一样，也是线程共享的，并且不需要物理上连续的内存，其用于存储被虚拟机加载的类信息，常量，静态变量，即时编译器编译后的代码等数据。 而java堆，是动态分配的，所以 在类加载器的时候，类信息首先被放在方法区内。
@@ -329,7 +331,7 @@ JVM由于要执行GC而停止了应用程序的执行称之为Stop-the-World，�
 
 ​	按照JVM 内置的通用垃圾回收原则。堆内存划分为 Eden、Survivor 和 Tenured/Old 空间，
 
-![](./assets/%E5%A0%86.png)
+![](../assets/%E5%A0%86.png)
 
 1. Minor GC
 
@@ -349,7 +351,16 @@ JVM由于要执行GC而停止了应用程序的执行称之为Stop-the-World，�
 
    很不幸，实际上它还有点复杂且令人困惑。首先，许多 Major GC 是由 Minor GC 触发的，所以很多情况下将这两种 GC 分离是不太可能的。另一方面，许多现代垃圾收集机制会清理部分永久代空间，所以使用“cleaning”一词只是部分正确。
 
+##### 补充：关于方法区的GC
 
+静态变量是属于类的不是属于实例对象的；所以这个类存在静态变量就会一直存在；静态变量存储在方法区；用于保存类常量以及字符串常量。注意，这个区域不是用于存储那些从老年代存活下来的对象，按照分代属于持久代；这个区域也可能发生GC。发生在这个区域的GC事件也被算为 Major GC 。只不过在这个区域发生GC的条件非常严苛，必须符合以下三种条件才会被回收：
+ 1、所有实例被回收
+
+2、加载该类的ClassLoader 被回收
+
+3、Class 对象无法通过任何途径访问（包括反射）
+
+所以一般来说 静态变量很少会被GC回收的；
 
 
 

@@ -511,7 +511,7 @@ Leetcode刷过
 
 
 
-### 16.树的子结构
+### 16.树的子结构 ✅
 
 ```java
 //和判断树是否对称有点类似
@@ -533,7 +533,7 @@ public class Solution {
         if(root1==null&&root2!=null)
             return false;
         if(root2==null)
-            return true;
+            return true;//我懂了 子结构不一定是完整的子树，可以仅仅是一部分
         if(root1.val==root2.val)
         {
             return isSubtree(root1.left,root2.left)&&isSubtree(root1.right,root2.right);
@@ -546,7 +546,7 @@ public class Solution {
 
 ```
 
-### 17.二叉树镜像，二叉树反转
+### 17.二叉树镜像，二叉树反转 ✅
 
 ```java
 public class Solution {
@@ -559,6 +559,23 @@ public class Solution {
         if(root ==null)
             return null;
         TreeNode temp =root.left;
+        root.left=mirror(root.right);
+        root.right=mirror(temp);
+        return root;
+        
+    }
+}
+//自己又写了一遍，真的没什么技术含量
+public class Solution {
+    public void Mirror(TreeNode root) {
+        mirror(root);
+        
+        
+    }
+    public TreeNode mirror(TreeNode root){
+        if(root==null)
+            return null;
+        TreeNode temp=root.left;
         root.left=mirror(root.right);
         root.right=mirror(temp);
         return root;
@@ -667,7 +684,7 @@ public class Solution {
 }
 ```
 
-### 21.二叉搜索树的后序遍历序列
+### 21.二叉搜索树的后序遍历序列 ✅
 
 ```java
 public class Solution {
@@ -945,7 +962,7 @@ public String PrintMinNumber(int [] numbers) {
 
 
 
-### 30.树中两个节点的最低公共祖先
+### 30.树中两个节点的最低公共祖先 ✅
 
 ```
 
@@ -1127,15 +1144,104 @@ public int partition(int arr[],int left,int right){
 
 
 
+### 60.树中两个结点的最低公共祖先
+
+##### 情境一：二叉树最低公共祖先
+
+```java
+class Solution {
+    
+    public TreeNode lowestCommonAncestor(TreeNode root, TreeNode p, TreeNode q) {
+        List<TreeNode> list = new ArrayList<>();
+        find(root,p,q,list);
+        if(list.isEmpty())
+            return null;
+        else
+            return list.get(0);
+        
+        
+    }
+    
+    public boolean find(TreeNode root,TreeNode p,TreeNode q,List<TreeNode> list){
+        
+        if(root==null)
+            return false;
+        boolean temp =find(root.left,p,q,list);
+        boolean temp2=find(root.right,p,q,list);
+        boolean temp3=(root.val==p.val||root.val==q.val);
+        if(temp&&temp2||temp&&temp3||temp2&&temp3){
+             list.add(root);
+            return true;
+        } 
+        else if(temp3)
+            return true;
+        else if(temp||temp2)
+            return true; 
+        return false;
+          
+    }
+}
+```
+
+##### 情景二：二叉搜索树的最低公共祖先
+
+```java
+public TreeNode find(TreeNode root,TreeNode p,TreeNode q){
+    if(root==null)
+        return null;
+    if(root.val>p.val&&root.val>q.val)
+        return find(root.left,p,q);
+    if(root.val<p.val&&root.val<q.val)
+        return find(root.right,p,q);
+    if(root.val>=Math.min(p.val,q.val)&&root.val<=Math.max(p.val,q.val))
+        return root;
+    return null;
+}
+//这样 在递归过程中 遇到的第一个root在两值之间的，就是最低公共祖先了。
+```
+
+##### 情境三：带有指向父结点指针的树的最低公共祖先
+
+```
+//转换成两个链表，首先递归找到结点，然后根据父结点构造出两个链表出来
+
+```
+
 
 
 # 海量数据类题目
 
+<http://www.sohu.com/a/278216703_652662>
+
+### 海量数据求重复最高的记录
+
+#### 场景1
+
+海量日志数据，提取出某日访问百度次数最多的那个IP
+
+IP的数目还是有限的，最多2^32个，所以可以考虑使用hash将ip直接存入内存，然后进行统计。
+
+再详细介绍下此方案：首先是这一天，并且是访问百度的日志中的IP取出来，逐个写入到一个大文件中。注意到IP是32位的，最多有个2^32个 IP。同样可以采用映射的方法，比如模1000，把整个大文件映射为1000个小文件，再找出每个小文中出现频率最大的IP（可以采用hash_map进行频率统计，然后再找出频率最大的几个）及相应的频率。然后再在这1000个最大的IP中，找出那个频率最大的IP，即为所求。
+
+**同样的数字/地址/字符串等等 用相同的哈希函数映射，最后一定在同一个文件里。**
+
+**然后在各个小文件中用hashmap进行频率统计，再整体遍历所有的hashmap，并用小根堆存储频率的最大值。**
+
+#### 场景2
+
+**搜索引擎会通过日志文件把用户每次检索使用的所有检索串都记录下来，每个查询串的长度为1-255字节。**
+
+假设目前有一千万个记录（这些查询串的重复度比较高，虽然总数是1千万，但如果除去重复后，不超过3百万个。一个查询串的重复度越高，说明查询它的用户越多，也就是越热门。），请你统计最热门的10个查询串，要求使用的内存不能超过1G。
+
+典型的Top K算法，还是在这篇文章里头有所阐述。 文中，给出的最终算法是：第一步、先对这批海量数据预处理，在O（N）的时间内用Hash表完成排序；然后，第二步、借助堆这个数据结构，找出Top K，时间复杂度为N‘logK。 即，借助堆结构，我们可以在log量级的时间内查找和调整/移动。因此，维护一个K(该题目中是10)大小的小根堆，然后遍历300万的Query，分别和根元素进行对比所以，我们最终的时间复杂度是：O（N） + N'*O（logK），（N为1000万，N’为300万）。ok，更多，详情，请参考原文。
+
+或者：采用trie树，关键字域存该查询串出现的次数，没有出现为0。最后用10个元素的最小推来对出现频率进行排序。
+
+
+
 ### 两个大文件求重复
 
 给定a、b两个文件，各存放50亿个url，每个url各占64字节，内存限制是4G，让你找出a、b文件共同的url？
-
-<http://www.sohu.com/a/278216703_652662>
 
 方案1：可以估计每个文件安的大小为5G×64=320G，远远大于内存限制的4G。所以不可能将其完全加载到内存中处理。考虑采取分而治之的方法。
 
@@ -1144,6 +1250,8 @@ public int partition(int arr[],int left,int right){
 遍历文件b，采取和a相同的方式将url分别存储到1000小文件（记为b0,b1,...,b999）。这样处理后，所有可能相同的url都在对应的小文件（a0vsb0,a1vsb1,...,a999vsb999）中，不对应的小文件不可能有相同的url。然后我们只要求出1000对小文件中相同的url即可。
 
 求每对小文件中相同的url时，可以把其中一个小文件的url存储到hash_set中。然后遍历另一个小文件的每个url，看其是否在刚才构建的hash_set中，如果是，那么就是共同的url，存到文件里面就可以了。
+
+**hash求模分治，存在1000个小文件里，然后按对比较即可，不重复**
 
 方案2：如果允许有一定的错误率，可以使用Bloom filter，4G内存大概可以表示340亿bit。将其中一个文件中的url使用Bloom filter映射为这340亿bit，然后挨个读取另外一个文件的url，检查是否与Bloom filter，如果是，那么该url应该是共同的url（注意会有一定的错误率）。
 

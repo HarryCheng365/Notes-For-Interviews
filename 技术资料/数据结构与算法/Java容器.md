@@ -1752,6 +1752,14 @@ public V get(Object key) {
 
 ​	见数据结构部分。
 
+### TreeMap的常用方法
+
+- put(Object key); 
+- get(Object key), getEntry(Object key); deleteEntry(Entry<K,V> entry)删除对应的entry
+- fixAfterDeletion(Entry<K,V> x); fixAfterInsertion(Entry<K,V> x);进行调整
+- successor(Entry<K,V> t) 寻找后继结点
+- remove(Object key);
+
 ### TreeMap的几个特点
 
 | **关 注 点**              | **结  论**                                                   |
@@ -2081,6 +2089,19 @@ public V put(K key, V value) {
    1. 根节点为黑色节点
    2. 没有连续红色节点
    3. 根节点到所有叶子节点经过的黑色节点都是2个
+
+# TreeSet
+
+TreeSet是对TreeMap的简单包装，
+
+```java
+public TreeSet(){
+    this.m = new TreeMap<E,Object>();
+}
+//TreeSet方法都是对TreeMap的包装
+```
+
+
 
 # HashTable
 

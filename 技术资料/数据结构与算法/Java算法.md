@@ -24,13 +24,13 @@
 
   分治，倍增，二分，贪心
 
+  还好吧，倍增目前没怎么用到，分治，二分，贪心等程序设计技巧，都接触过了
 
 
 
 
-3天算法速成 笑死我了
 
-
+我开始变化了，真正去分析解决问题，而不是背题，背解法，用自己掌握的数据结构去解决问题
 
 ## 算法：
 
@@ -84,7 +84,7 @@ for(int i=0;i<nums.length;i++){
 
 #### 选择排序
 
-```
+```java
 选择排序(Selection-sort)是一种简单直观的排序算法。
 它的工作原理：首先在未排序序列中找到最小（大）元素，存放到排序序列的起始位置，然后，再从剩余未排序元素中继续寻找最小（大）元素，然后放到已排序序列的末尾。
 选择排序： 时间复杂度 最好O(n^2) 最坏 O(n^2) 平均O(n^2) 空间复杂度 O(1)
@@ -144,11 +144,26 @@ if(arrays == null || arrays.length <= 1){
             incrementNum = incrementNum/2;
         }
     }//也是交换排序的一种，希尔排序
+
+int increment =array.length/2;
+while(increment>=1){
+    for(int i=0;i<arrays.length;i++){
+        for(int j=i;j<array.length-increment;j+=increment){
+            if(array[j]>array[j+increment]){
+                int temp=array[j+increment];
+                array[j+increment]=array[j];
+                array[j]=temp;
+            }
+        }
+    }
+    increment =increment/2;
+}
+
 ```
 
 #### 归并排序(分治法的典型应用)
 
-```
+```java
 int nums[]=new int[100];
 public int [] sort(int arr[],int left,int right){
 if(left>right)
@@ -168,6 +183,8 @@ public void merge(){
 ```
 
 用归并要有额外的O(n)空间
+
+
 
 #### 快速排序
 
@@ -197,6 +214,83 @@ private int partition(int[] arr,int left,int right){
     }
     arr[left]==temp;
     return left;
+}
+
+
+public void quicksort(int []array, int left , int right){
+    if(left<right){
+        int pivot= partition(array,left,right);
+        quicksort(array,left,pivot-1);
+        quicksort(array,pivot+1,right);
+        
+    }
+}
+public int partition(int []array,int left,int right){
+    int temp=array[left];
+    while(left<right){
+        while(left<right&&array[right]>temp)
+            right--;
+        array[left]=array[right];
+        while(left<right&&array[left]<temp)
+            left--;
+        array[right]=array[left];
+    }
+    array[left]=temp;
+    return left;
+}
+```
+
+#### 堆排序
+
+```java
+public void heapSort(List<Intger> heap){
+    //adjust(heap,1,heap.size()-1); 不需要，不需要先调整一次
+    //反正本来就是无序的
+    
+    for(int i=heap.size()-1;i>0;i--){
+        swap(heap,1,i);
+        adjust(heap,1,i);
+    }
+}
+
+public void adjust(List<Intger> heap, int start,int end){
+    
+    int i=start;
+    for(;i<end/2;){
+        i=start*2;
+        if(i+1<end&&heap.get(i)<heap.get(i+1))
+            i++;
+        if(heap.get(start)<heap.get(i)){
+            swap(heap,start,i);
+        	start=i;
+        }
+        else
+            break;       
+    }
+}
+
+public void heapsort(List<Integer> heap){
+    for(int i=heap.size()-1;i>0;i--){
+        swap(heap,1,i);
+        adjust(heap,1,i);
+    }
+}
+public void adjust(List<Integer> heap, int start,int end){
+    int child=start;
+    for(;child<end/2;){
+        child=start*2;
+        if(child+1<end&&heap.get(child)<heap.get(child+1))
+            child++;
+        if(heap.get(start)<heap.get(child)){
+             swap(heap,start,child);
+        start=child;
+            
+        }
+        else
+            break;
+           
+        
+    }
 }
 ```
 
@@ -269,7 +363,7 @@ public int BinarySearch(int nums[],int value,int low ,int high){
 
 ```
 
-#### 二分查找
+#### 二维数组二分查找
 
 ```java
 public int BinarySearch(int arr[],int value,int low,int high){
@@ -293,7 +387,9 @@ public int BinarySearch(int arr[],int value,int low,int high){
 
 #### 插值查找
 
-```
+插值查找主要是，找到那个比例值，那个比例值很重要
+
+```java
 插值查找，改变了比例，比如二分查找一定是折半的
 mid=(low+high)/2, 即mid=low+1/2*(high-low);
 但是我们可以自行计算出 一个区间比例值
@@ -370,7 +466,8 @@ public int InsertSearch(int nums[],int value,int low, int high){
             this.Number = number;//记录该节点及子结点个数的number值 空间换时间      
        }
     }
-也是中序遍历就可以出结果
+//也是中序遍历就可以出结果
+//可以有指向父结点的指针，也可以没有
 ```
 
 #### 平衡查找二叉树
