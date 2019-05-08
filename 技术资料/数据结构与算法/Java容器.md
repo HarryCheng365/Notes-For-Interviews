@@ -1,8 +1,30 @@
+# 容器继承关系图
+
+![A49968AB-6E16-4E53-B6AB-C467CC0A697A](../assets/A49968AB-6E16-4E53-B6AB-C467CC0A697A.png)
+
+主要就是 Map Set List Queue 这几个接口
+
 # ArrayList
+
+
 
 ​	线程不安全。底层实现原理为动态数组扩容，但要额外注意对各种异常情况的考虑。
 
 ​	基础功能实现代码：
+
+已经没什么好底层的了，已经底层到连续物理内存空间的分配了，还有什么更底层的？汇编？
+
+- add操作的时候 回对数组长度进行检测，
+
+  如果发现满了，就会扩容成 （size+1）*2，原来的两倍
+
+  并且 arraycopy这个一个时间复杂度为n的操作，可以指定哪个数组向哪个数组复制
+
+- remove是时间为O(n)的，如果remove(null)的话，也是可以的，会检测每一个元素的值是不是为null
+
+  然后移除，当然不会重复移除，找到一个就回立即返回了，并且这里用的是equals方法，重写equals一定要重写hashcode()
+
+  
 
 ```java
 public class MyArrayList {
@@ -39,8 +61,11 @@ public class MyArrayList {
 
         Object oldValue = elementData[index];
         int numMoved = size - index - 1;
+        //numMoved 是remove涉及到的所有元素
         if(numMoved > 0){
             System.arraycopy(elementData, index+1, elementData, index, numMoved);
+            
+            //把index+1后的所有元素，都移动到相同数组的index位置，这样不需要删除index，只会把index覆盖掉，然后把数组最后一位释放掉
         }
         elementData[--size] = null;
 
@@ -84,6 +109,8 @@ public class MyArrayList {
 
 
 # LinkedList
+
+就是链表，前者拥有后者的一个引用，我现在就可以手写一个给你看，ListNode只需要 val 和 ListNode next两个值就可以了
 
 ​	线程不安全。
 
@@ -184,6 +211,7 @@ public class MyHashMap2 {
         int keyHashCode = key.hashCode()%linkedLists.length;    //自定义的hashCode
 
         //哈希表中对应hashcode位置为空的情况：直接创建list加入数组中
+        //所以 
         if(linkedLists[keyHashCode] == null){   
             MyEntry entry = new MyEntry(key, value);
             LinkedList list = new LinkedList();
@@ -208,6 +236,9 @@ public class MyHashMap2 {
         ++size;
     }
 
+    //keyhashcode 成为了数组的索引，当然这个索引也可以用 红黑树实现，为每一个
+    //其实说白了，这就是hash索引，用的是索引技术，而之后hash冲突的解决是用的
+    //链地址法，这是一层表，然后
     public Object get(Object key){
         int keyHashCode = key.hashCode()%linkedLists.length;
         //若存在哈希索引，则先获取索引所对应的list，再遍历，逐个比较key值
@@ -222,6 +253,7 @@ public class MyHashMap2 {
         return null;
     }
 }
+//遍历list 用
 ```
 
 ### HashMap in JDK1.7
@@ -246,7 +278,7 @@ public class MyHashMap2 {
   - 在时间和空间成本上寻求一种折衷。加载因子过高虽然减少了空间开销，但同时也增加了查找某个条目的时间
   - 降低哈希冲突发生的概率
 
-- threshold：扩容的阈值，等于 capacity * loadFactor，threshold表示当HashMap的size大于threshold时会执行resize操作。
+- threshold：扩容的阈值，等于 capacity * loadFactor，threshold表示当HashMap的size大于threshold时会执行resize操作。 容量*负载因子
 
 ##### put 过程分析 ✅
 
@@ -315,6 +347,8 @@ private void inflateTable(int toSize) {
 
 这个简单，我们自己也能 YY 一个：使用 key 的 hash 值对数组长度进行取模就可以了。
 
+这里是与操作，与操作取模，有点骚啊，怪不得取模操作这么多
+
 ```java
 static int indexFor(int hash, int length) {
     // assert Integer.bitCount(length) == 1 : "length must be a non-zero power of 2";
@@ -324,7 +358,9 @@ static int indexFor(int hash, int length) {
 
 这个方法很简单，简单说就是取 hash 值的低 n 位。如在数组长度为 32 的时候，其实取的就是 key 的 hash 值的低 5 位，作为它在数组中的下标位置。
 
-length一定大小为2的n次方-1所以就11111所以取的是key的hash值的低5位
+length一定大小为2的n次方-1所以就11111所以取的是key的hash值的低5位，
+
+如此来进行index的计算
 
 ##### 添加节点到链表中
 
@@ -354,7 +390,11 @@ void createEntry(int hash, K key, V value, int bucketIndex) {
 
 这个方法的主要逻辑就是先判断是否需要扩容，需要的话先扩容，然后再将这个新的数据插入到扩容后的数组的相应位置处的链表的表头。
 
+##### 补充：头插法与尾插法
+
 这里也有一个为什么放在表头的问题，而不是表尾，表尾的话每次插入都要轮寻链表一遍
+
+因为index是针对数组长度的取模，所以数组长度变化后，index也要重新hash一下，算长度
 
 ##### 数组扩容
 
@@ -379,7 +419,9 @@ void resize(int newCapacity) {
 
 扩容就是用一个新的大数组替换原来的小数组，并将原来数组中的值迁移到新的数组中。
 
-**由于是双倍扩容，迁移过程中，会将原来 table[i] 中的链表的所有节点，分拆到新的数组的 newTable[i] 和 newTable[i + oldLength] 位置上。如原来数组长度是 16，那么扩容后，原来 table[0] 处的链表中的所有元素会被分配到新数组中 newTable[0] 和 newTable[16] 这两个位置**。代码比较简单，这里就不展开了。
+**由于是双倍扩容，迁移过程中，会将原来 table[i] 中的链表的所有节点，分拆到新的数组的 newTable[i] 和 newTable[i + oldLength] 位置上。如原来数组长度是 16，那么扩容后，肯定要rehash的，这里拆分是rehash之后的拆分，不是说平分这种骚操作！ 原来 table[0] 处的链表中的所有元素会被分配到新数组中 newTable[0] 和 newTable[16] 这两个位置**。代码比较简单，这里就不展开了。
+
+
 
 ##### get过程分析 ✅
 
@@ -424,7 +466,7 @@ final Entry<K,V> getEntry(Object key) {
 
 
 
-##### HashMap1.7多线程死循环问题
+##### 补充：HashMap1.7多线程死循环问题
 
 - 问题引入
 
@@ -434,9 +476,15 @@ final Entry<K,V> getEntry(Object key) {
 
   在了解来龙去脉之前，我们先看看HashMap的数据结构。
 
-  在内部，HashMap使用一个Entry数组保存key、value数据，当一对key、value被加入时，会通过一个hash算法得到数组的下标index，算法很简单，根据key的hash值，对数组的大小取模 hash & (length-1)，并把结果插入数组该位置，如果该位置上已经有元素了，就说明存在hash冲突，这样会在index位置生成链表。
+  在内部，HashMap使用一个Entry数组保存key、value数据，当一对key、value被加入时，
 
-  如果存在hash冲突，最惨的情况，就是所有元素都定位到同一个位置，形成一个长长的链表，这样get一个值时，最坏情况需要遍历所有节点，性能变成了O(n)，所以元素的hash值算法和HashMap的初始化大小很重要。
+  会通过一个hash算法得到数组的下标index，算法很简单，根据key的hash值，对数组的大小取模 hash & (length-1)，并且数组的长度大小都是2的n次方
+
+  并把结果插入数组该位置，如果该位置上已经有元素了，就说明存在hash冲突，这样会在index位置生成链表。
+
+  如果存在hash冲突，最惨的情况，就是所有元素都定位到同一个位置，形成一个长长的链表，这样get一个值时，最坏情况需要遍历所有节点，性能变成了O(n)，
+
+  所以元素的hash值算法和HashMap的初始化大小很重要，但是在1.8解决了这个问题，当长度过长的时候，用红黑树代替链表
 
   当插入一个新的节点时，如果不存在相同的key，则会判断当前内部元素是否已经达到阈值（默认是数组大小的0.75），如果已经达到阈值，会对数组进行扩容，也会对链表中的元素进行rehash。
 
@@ -458,12 +506,14 @@ final Entry<K,V> getEntry(Object key) {
   }
   ```
 
+  Transfer迁移操作
+
   这里会新建一个更大的数组，并通过transfer方法，移动元素。
 
   ```java
   void transfer(Entry[] newTable, boolean rehash) {
       int newCapacity = newTable.length;
-      for (Entry<K,V> e : table) {
+      for (Entry<K,V> e : table) { 这事对于table中的每一个元素
           while(null != e) {
               Entry<K,V> next = e.next;
               if (rehash) {
@@ -537,10 +587,12 @@ final Entry<K,V> getEntry(Object key) {
 
    这时，在 **线程2** 中，变量e指向节点a，变量next指向节点b，开始执行循环体的剩余逻辑。
 
+   因为在线程2中保留了指向b的指针，所以这里出现问题了，保留了指向b的指针
+
    ```java
    Entry<K,V> next = e.next;
    int i = indexFor(e.hash, newCapacity);
-   e.next = newTable[i];
+   e.next = newTable[i];//指向了自己其实变相设为null
    newTable[i] = e;
    e = next;
    ```
@@ -569,6 +621,12 @@ final Entry<K,V> getEntry(Object key) {
 
    **归根结底，原因就是1.7链表新节点采用的是头插法，这样在线程一扩容迁移元素时，会将元素顺序改变，导致两个线程中出现元素的相互指向而形成循环链表，1.8采用了尾插法，从根源上杜绝了这种情况的发生**。
 
+##### 补充：如何避免HashMap1.7的死循环？
+
+**归根结底，原因就是1.7链表新节点采用的是头插法，这样在线程一扩容迁移元素时，会将元素顺序改变，导致两个线程中出现元素的相互指向而形成循环链表，1.8采用了尾插法，从根源上杜绝了这种情况的发生**。
+
+建议采用尾插法
+
 ### ConcurrentHashMap in JDK1.7
 
 ​	ConcurrentHashMap 和 HashMap 思路是差不多的，但是因为它支持并发操作，所以要复杂一些。
@@ -587,13 +645,31 @@ final Entry<K,V> getEntry(Object key) {
 
 ​	再具体到每个 Segment 内部，其实每个 Segment 很像之前介绍的 HashMap，不过它要保证线程安全，所以处理起来要麻烦些。
 
+其实相比于HashTable 就是提高并发效率，细化锁的粒度
+
+##### 存储结构
+
+```java
+static final class HashEntry<K,V> {
+    final int hash;
+    final K key;
+    volatile V value;
+    volatile HashEntry<K,V> next; 
+    //在value和Entry上，也是用了volatile变量，就是不能防止原子性
+}
+```
+
+
+
 ##### 初始化过程分析 ✅
 
 initialCapacity：初始容量，这个值指的是整个 ConcurrentHashMap 的初始容量，实际操作的时候需要平均分给每个 Segment。
 
-loadFactor：负载因子，之前我们说了，Segment 数组不可以扩容，所以这个负载因子是给每个 Segment 内部使用的。
+loadFactor：负载因子，之前我们说了，Segment 数组不可以扩容，所以这个负载因子是给每个 Segment 内部使用的。Segment不可扩容
 
 ```java
+
+
 public ConcurrentHashMap(int initialCapacity,
                          float loadFactor, int concurrencyLevel) {
     if (!(loadFactor > 0) || initialCapacity < 0 || concurrencyLevel <= 0)
@@ -619,6 +695,7 @@ public ConcurrentHashMap(int initialCapacity,
     // initialCapacity 是设置整个 map 初始的大小，
     // 这里根据 initialCapacity 计算 Segment 数组中每个位置可以分到的大小
     // 如 initialCapacity 为 64，那么每个 Segment 或称之为"分段锁"可以分到 4 个
+    //即只要涉及到的数组范围在4个内，就会加上这个Segment锁
     int c = initialCapacity / ssize;
     if (c * ssize < initialCapacity)
         ++c;
@@ -637,17 +714,25 @@ public ConcurrentHashMap(int initialCapacity,
     // 往数组写入 segment[0]
     UNSAFE.putOrderedObject(ss, SBASE, s0); // ordered write of segments[0]
     this.segments = ss;
+    
 }
 ```
 
-初始化完成，我们得到了一个 Segment 数组。
+初始化完成，我们得到了一个 Segment 数组，每一个Segment数组又像一个小hash表
 
 我们就当是用 new ConcurrentHashMap() 无参构造函数进行初始化的，那么初始化完成后：
 
 - Segment 数组长度为 16，不可以扩容
+
 - Segment[i] 的默认大小为 2，负载因子是 0.75，得出初始阈值为 1.5，也就是以后插入第一个元素不会触发扩容，插入第二个会进行第一次扩容
+
+  Segment不会扩容，但是Segment里包含的Entry数组可以扩容
+
 - 这里初始化了 segment[0]，其他位置还是 null，至于为什么要初始化 segment[0]，后面的代码会介绍
+
 - 当前 segmentShift 的值为 32 – 4 = 28，segmentMask 为 16 – 1 = 15，姑且把它们简单翻译为移位数和掩码，这两个值马上就会用到
+
+  其实就相当于一个二级索引，segmentShift为左移动segmentMask就是 
 
 ##### put过程分析
 
@@ -674,7 +759,7 @@ public V put(K key, V value) {
 }
 ```
 
-第一层皮很简单，根据 hash 值很快就能找到相应的 Segment，之后就是 Segment 内部的 put 操作了。
+第一层很简单，根据 hash 值很快就能找到相应的 Segment，之后就是 Segment 内部的 put 操作了。
 
 Segment 内部是由 数组+链表 组成的。
 
@@ -714,7 +799,7 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
                 // node 到底是不是 null，这个要看获取锁的过程，不过和这里都没有关系。
                 // 如果不为 null，那就直接将它设置为链表表头；如果是null，初始化并设置为链表表头。
                 if (node != null)
-                    node.setNext(first);
+                    node.setNext(first);//这是头插法？ 依旧是头插法，但是由于加了锁，所以单线程安全
                 else
                     node = new HashEntry<K,V>(hash, key, value, first);
  
@@ -743,6 +828,17 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
 整体流程还是比较简单的，由于有独占锁的保护，所以 segment 内部的操作并不复杂。至于这里面的并发问题，我们稍后再进行介绍。
 
 到这里 put 操作就结束了，接下来，我们说一说其中几步关键的操作。
+
+##### Put操作总结
+
+- 初始化槽：ensureSegment，插入第一个值的时候对这个锁段进行初始化，用CAS进行并发控制，在初始化对象的时候，因为这个时候Segment才初始化，所以没有对象锁可以获取，用类锁又效率太低，不如CAS
+- 获得写入锁scanAndLockForPut，首先会调用 node = tryLock() ? null : scanAndLockForPut(key, hash, value)，也就是说先进行一次 tryLock() 快速获取该 segment 的独占锁，如果失败，那么进入到 scanAndLockForPut 这个方法来获取锁。
+
+
+
+
+
+
 
 - 初始化槽: ensureSegment
 
@@ -784,7 +880,9 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
 
   总的来说，ensureSegment(int k) 比较简单，对于并发操作使用 CAS 进行控制。
 
-  *我没搞懂这里为什么要搞一个 while 循环，CAS 失败不就代表有其他线程成功了吗，为什么要再进行判断？*
+  *我没搞懂这里为什么要搞一个 while 循环，CAS 失败不就代表有其他线程成功了吗*
+
+  这才是CAS啊，因为一直尝试获取，所以说实现了并发下的较高效率
 
 - 获取写入锁: scanAndLockForPut
 
@@ -987,9 +1085,37 @@ Java8 对 HashMap 进行了一些修改，最大的不同就是利用了红黑�
 
 Java7 中使用 Entry 来代表每个 HashMap 中的数据节点，Java8 中使用 Node，基本没有区别，都是 key，value，hash 和 next 这四个属性，不过，Node 只能用于链表的情况，红黑树的情况需要使用 TreeNode。
 
+
+
 我们根据数组元素中，第一个节点数据类型是 Node 还是 TreeNode 来判断该位置下是链表还是红黑树的。
 
 ##### put过程分析
+
+- 依旧，初始化数组长度，resize()，
+
+  null 初始化到默认的16或者自定义的初始容量
+
+- 找到具体的数组下标，如果此位置没有值，那么初始化一下Node放在这个位置就可以了
+
+  如果该位置已经有值了
+
+  首先判断第一个数据是不是相等
+
+  然后判断该结点是不是红黑树结点，如果是，则用红黑树的插值方法，有3种*2 6种情况而已
+
+- 那么，说明该位置是一个链表，就用链表的方式去尾插法，找到元素后
+
+  break equal循环，把该值覆盖掉
+
+  
+
+  
+
+  
+
+  
+
+  
 
 ```java
 public V put(K key, V value) {
@@ -1058,6 +1184,8 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 ```
 
 和 Java7 稍微有点不一样的地方就是，Java7 是先扩容后插入新值的，Java8 先插值再扩容，不过这个不重要。
+
+因为阀值离溢出，还远着呢
 
 扩容细节如下：
 
@@ -1219,6 +1347,8 @@ public ConcurrentHashMap(int initialCapacity) {
     int cap = ((initialCapacity >= (MAXIMUM_CAPACITY >>> 1)) ?
                MAXIMUM_CAPACITY :
                tableSizeFor(initialCapacity + (initialCapacity >>> 1) + 1));
+    //这是无符号数向右移动，因为只能使整数所以有符号无符号没什么区别
+    //右移
     this.sizeCtl = cap;
 }
 ```

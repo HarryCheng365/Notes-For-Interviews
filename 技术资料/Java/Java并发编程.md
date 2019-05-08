@@ -363,15 +363,65 @@ Share（共享，多个线程可同时执行，如Semaphore/CountDownLatch）。
 
 ##### **Semaphore 是互斥信号量**
 
+semaphore也是两个主要方法，一个是acquire() 一个是release() 正好和countDownLatch的作用相反，acquire代表获取到可用的Semaphore，如果达到指定上限则其他获取 就会阻塞
+
 ```java
 Semaphores are often used to restrict the number of threads than can
 * access some (physical or logical) resource. For example, here is
 * a class that uses a semaphore to control access to a pool of items:
+class Pool {
+ *   private static final int MAX_AVAILABLE = 100;
+ *   private final Semaphore available = new Semaphore(MAX_AVAILABLE, true);
+ *
+ *   public Object getItem() throws InterruptedException {
+ *     available.acquire();
+ *     return getNextAvailableItem();
+ *   }
+ *
+ *   public void putItem(Object x) {
+ *     if (markAsUnused(x))
+ *       available.release();
+ *   }
+ *
+ *   // Not a particularly efficient data structure; just for demo
+ *
+ *   protected Object[] items = ... whatever kinds of items being managed
+ *   protected boolean[] used = new boolean[MAX_AVAILABLE];
+ *
+ *   protected synchronized Object getNextAvailableItem() {
+ *     for (int i = 0; i < MAX_AVAILABLE; ++i) {
+ *       if (!used[i]) {
+ *          used[i] = true;
+ *          return items[i];
+ *       }
+ *     }
+ *     return null; // not reached
+ *   }
+ *
+ *   protected synchronized boolean markAsUnused(Object item) {
+ *     for (int i = 0; i < MAX_AVAILABLE; ++i) {
+ *       if (item == items[i]) {
+ *          if (used[i]) {
+ *            used[i] = false;
+ *            return true;
+ *          } else
+ *            return false;
+ *       }
+ *     }
+ *     return false;
+ *   }
+ * }}</pre>
 ```
 
 Semaphore是控制最大访问线程数的信号量，比如低于0，就会阻塞，直到再生产出来
 
+Semaphore恰恰相反
+
 ##### **CountDownLatch是同步信号量**
+
+其实countDown就两个方法，一个是countDown 信号量减一，代表执行一次
+
+一个是await()代表等待消息，一旦检测到countDown变为0了 就开始执行后面的代码
 
 ```java
 <p>A {@code CountDownLatch} is a versatile synchronization tool
@@ -382,11 +432,47 @@ Semaphore是控制最大访问线程数的信号量，比如低于0，就会阻�
 * #countDown}.  A {@code CountDownLatch} initialized to <em>N</em>
 * can be used to make one thread wait until <em>N</em> threads have
 * completed some action, or some action has been completed N times.
+  	class Driver { // ...
+ *   void main() throws InterruptedException {
+ *     CountDownLatch startSignal = new CountDownLatch(1);
+ *     CountDownLatch doneSignal = new CountDownLatch(N);
+ *
+ *     for (int i = 0; i < N; ++i) // create and start threads
+ *       new Thread(new Worker(startSignal, doneSignal)).start();
+ *
+ *     doSomethingElse();            // don't let run yet
+ *     startSignal.countDown();      // let all threads proceed
+ *     doSomethingElse();
+ *     doneSignal.await();           // wait for all to finish
+ *   }
+ * }
+ *
+ * class Worker implements Runnable {
+ *   private final CountDownLatch startSignal;
+ *   private final CountDownLatch doneSignal;
+ *   Worker(CountDownLatch startSignal, CountDownLatch doneSignal) {
+ *     this.startSignal = startSignal;
+ *     this.doneSignal = doneSignal;
+ *   }
+ *   public void run() {
+ *     try {
+ *       startSignal.await();
+ *       doWork();
+ *       doneSignal.countDown();
+ *     } catch (InterruptedException ex) {} // return;
+ *   }
+ *
+ *   void doWork() { ... }
+ * }}</pre>
+ *
+ 
 ```
 
 意思是，CountDownLatch 直到数量为0才会执行，和Semaphore正好相反，虽然都是同步信号量
 
+##### Condition 同步信号量
 
+另外condition也是同步信号量，就是简化版本的semaphore个人感觉
 
 不同的自定义同步器争用共享资源的方式也不同。自定义同步器在实现时只需要实现共享资源state的获取与释放方式即可，至于具体线程等待队列的维护（如获取资源失败入队/唤醒出队等），AQS已经在顶层实现好了。自定义同步器实现时主要实现以下几种方法：
 
@@ -591,6 +677,8 @@ Thread类是java下实现多线程的核心类。
 
   - 如果直接人为调用，则没有经过jvm创建新线程，与普通方法无异。
   - 如果通过start()方法来启动run()方法，需要将run()方法重写，否则最后jvm调用run()方法什么也不会发生。
+
+  
 
 start()与run()方法的代码测试结果如下：
 
@@ -1218,10 +1306,8 @@ synchronized获取对象锁，它修饰的对象有
 
 ### 代码块VS非静态方法
 
-```
 从上面代码可以看出，synchronized代码块 比 synchronized方法 的粒度更细一些，使用起来也灵活得多。因为也许一个方法中只有一部分代码只需要同步，
-如果此时对整个方法用synchronized进行同步，会影响程序执行效率。而使用synchronized代码块就可以避免这个问题，synchronized代码块可以实现只对需要同步的地方进行同步。
-```
+如果此时对整个方法用synchronized进行同步，会影响程序执行效率。而使用synchronized代码块就可以避免这个问题，synchronized代码块可以实现只对需要同步的地方进行同步。 
 
 ### 类锁VS对象锁
 

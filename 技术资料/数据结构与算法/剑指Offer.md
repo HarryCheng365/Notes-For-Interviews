@@ -6,6 +6,8 @@
 
 ### 1. 二维数组查找 ✅
 
+##### 情境一：二维排序数组查找
+
 ```java
 //二维数组的二分搜索，多维的二分搜索，关键就在一个部分有序或者的列表里，找到一个有序序列并排除掉，比如
 //1 2 8 9
@@ -40,7 +42,62 @@ public class Solution {
         
     
 }
+
+
+public void swap(int [] array){
+    for(int i=array.length-1;i>=0;i--){
+        for(int j=i;j>=array.length-i;j--){
+            if(array[j-1]==0&&array[j]!=0){
+                int temp=array[j];
+                array[j]=array[j-1];
+                array[j-1]=temp;
+            }          
+                
+        }      
+    }
+    
+}
 ```
+
+##### 情景二：二维排序数组TopK
+
+```java
+//PriorityQueue 堆排序，或者 二分查找，这个二分查找真的很有意思
+//取了估值，然后二分查找的遍历形式实现
+public int binarySearch(int [][]array,int k){
+    int low=array[0][0];
+    int high=array[array[0].length-1][array.length-1]+1;
+    int guess =(low+high)/2;
+    int j=array[0].length-1;
+    int count=0;
+    while(low<high){    
+         for(int i=0;i<array.length;i++){
+        while(j>=0&&array[i][j]>guess){
+             	j--;
+        }
+             count+=j+1;//如果边界条件0还是大于array[i][j]的话 刚好
+             //执行到j-- count+=0； 很巧妙这种解法
+        
+    }
+        if(count==k)
+            return guess;
+        if(count<k){
+            low=guess+1;
+        }else
+            high=guess-1;
+                  
+    
+    }
+    return -1;
+   
+        
+    
+    
+}
+
+```
+
+
 
 ### 2. 替换空格 ✅
 
@@ -159,7 +216,9 @@ public class Solution {
         }
         TreeNode head=new TreeNode(p[pi]);
         int index=map.get(p[pi]);//是的 我就在想怎么省去查找这一步
-        head.left=preIn(p,pi+1,pi+index-ni,n,ni,index-1,map);
+          //取出根的位置，界定 
+        head.left=preIn(p,pi+1,pi+index-ni,n,ni,index-1,map);//因为可能是右子树的左子树，所以
+          //pi+index-ni
         head.right=preIn(p,pi+index-ni+1,pj,n,index+1,nj,map);
           //这是把左右子树列出来了 ni是最左值，也是起始值
           //如果pi+index-n1+1 取根的右面，如果小了
@@ -203,6 +262,7 @@ public class Solution {
 ### 5.旋转数组最小数字 ✅
 
 ```java
+//这是为n的解法，还有不为n的
 import java.util.ArrayList;
 public class Solution {
     public int minNumberInRotateArray(int [] array) {
@@ -216,6 +276,29 @@ public class Solution {
         }
         return 0;
     }
+}
+//
+public int minNumber(int []array){
+    int low=0;
+    int high=array.length-1;
+   int mid=( low+high)/2;
+    if(array[low]>=array[high]){
+        while(low<high){
+            if(array[mid]==array[high]&&array[mid]==array[low])
+                break;//此时必须用顺序查找法了
+            if(high-low==1)
+                return array[mid];
+        if(array[mid]>array[0])
+            low=mid+1;
+        if(array[mid]<array[array.length-1])
+            high=mid-1;
+            
+            
+    }
+    }else
+        return array[0];
+    
+    
 }
 ```
 
@@ -596,7 +679,9 @@ public class Solution {
 用PriorityQueue 和 栈两个容器实现
 import java.util.*;
 
+//不用 其实包含Min数的栈 用两个栈实现就好了
 public class Solution {
+    
 
     PriorityQueue<Integer> queue = new PriorityQueue<>();
     Stack<Integer> stack = new Stack<Integer>();
@@ -631,7 +716,7 @@ public class Solution {
 }
 ```
 
-### 19.出栈，入栈序列 ⚠️
+### 19.出栈，入栈序列 ✅
 
 ```java
 import java.util.ArrayList;
@@ -658,7 +743,7 @@ public class Solution {
 }
 ```
 
-### 20.二叉树||多叉树 层序遍历 BFS用队列，DFS用栈
+### 20. 二叉树深度优先广度优先
 
 ```java
 import java.util.*;
@@ -682,6 +767,10 @@ public class Solution {
         
     }
 }
+
+//二叉树的深度优先遍历
+
+//带回溯的搜索
 ```
 
 ### 21.二叉搜索树的后序遍历序列 ✅
@@ -708,9 +797,48 @@ public class Solution {
 
 ### 22.二叉树中和为某一值的路径 ⚠️
 
+##### 情景一：二叉树中和为某一值的路径
+
 ```
 
 ```
+
+##### 情景二：树的深度
+
+```java
+//这个真的是，可以按照堆的思想，怎么说一个树的最大深度，总是由其左边最大深度，和右边最大深度的最大值决定的
+//因此，可以是个递归的过程
+//同理 多叉树也是一样，这个可以不只适用于二叉树
+public int findDeepth(TreeNode node){
+    if(node==null)
+        return 0;
+    int left=findDeepth(node.left);
+    int right=findDeepth(node.right);
+    return (left>right)? left+1:right+1;
+}
+```
+
+##### 情景三：树是否为平衡二叉树
+
+```java
+public class Solution {
+    public boolean IsBalanced_Solution(TreeNode root) {
+        return getDepth(root) != -1;
+    }
+     
+    private int getDepth(TreeNode root) {
+        if (root == null) return 0;
+        int left = getDepth(root.left);
+        if (left == -1) return -1;
+        int right = getDepth(root.right);
+        if (right == -1) return -1;
+        return Math.abs(left - right) > 1 ? -1 : 1 + Math.max(left, right);
+    }
+    //只需要判断就好了，不需要求树的深度 我不知道怎么传值
+}
+```
+
+
 
 ### 23.复杂链表的复制 ⚠️
 
@@ -1034,7 +1162,8 @@ public class Solution {
             if(tmp==result[i3] * 3) i3++;
             if(tmp==result[i5]*5) i5++;
             result[++count]=tmp;
-        }
+        }//其实就是统计现在有几个元素了，如果用到了就用下一个
+        //min可以用Math.min进行替代
         return result[index - 1];//这个也不算动态规划吧，其实就是不重复的全排列？
     }
  
@@ -1086,8 +1215,44 @@ public class Solution {
 
 ### 35.第一个只出现一次的字符 
 
+##### 情景1
+
 ```
 
+```
+
+
+
+##### 情景2
+
+数组中只出现一次的数字
+
+```java
+//num1,num2分别为长度为1的数组。传出参数
+//将num1[0],num2[0]设置为返回结果
+import java.util.*;
+public class Solution {
+    public void FindNumsAppearOnce(int [] array,int num1[] , int num2[]) {
+        HashMap<Integer,Integer> hash = new HashMap<>();
+        for(int i=0;i<array.length;i++){
+            if(hash.containsKey(array[i]))
+                hash.put(array[i],hash.get(array[i])+1);
+            else
+                hash.put(array[i],1);
+        }
+        List<Integer> list = new ArrayList<>();
+        for(Integer key:hash.keySet()){
+            if(hash.get(key)==1){
+                list.add(key);
+            }      
+        }
+        num1[0]=list.get(0);
+        num2[0]=list.get(1);
+        
+        
+    }
+    
+}
 ```
 
 
@@ -1134,13 +1299,253 @@ public int partition(int arr[],int left,int right){
 //双指针技巧
 ```
 
+### 38.数在排序数组中的出现次数
+
+```java
+//O(n)的做法有两种，然后还有一种是二分搜索找到后，向前向后搜索
+ublic class Solution {
+    public int GetNumberOfK(int [] array , int k) {
+        int start=0;
+        int end=array.length;
+        for(int i=array.length-1;i>=0;i--){
+           if(array[i]==k){
+               end=i;
+               break;
+           }
+        }
+            
+        for(int i=0;i<array.length;i++){
+             if(array[i]==k){
+                 start=i;
+                 break;
+             }              
+        }
+        if(end-start>=0&&end-start<array.length)
+            return end-start+1;
+        
+        return 0;       
+    }
+}
+//第一种，前后搜索，取差值，分别搜索，一个数字的开头，再搜索一个数字的结尾，连续写两个二分搜索函数就好了
+
+```
 
 
-### 38.归并排序
+
+### 39.归并排序
+
+尤其应该注意归并的过程
+
+```
+
+```
 
 
 
-### 堆排序
+### 40.堆排序 ✅
+
+### 41.翻转单词序列 ✅
+
+##### 情景一：反转单词序列
+
+```java
+import java.util.*;
+public class Solution {
+    public String ReverseSentence(String str) {
+        if(str.trim().length()==0)
+            return str;
+        String[] strs=str.split(" ");
+        Stack<String> stack  = new Stack<>();
+        for(String str2:strs){
+            stack.push(str2);
+        }
+        
+        StringBuffer strb= new StringBuffer();
+       
+        while(!stack.isEmpty()){
+            if(stack.size()>1)
+                strb.append(stack.pop()+" ");
+            else
+                strb.append(stack.pop());   
+        }
+       
+        return strb.toString();
+        
+    }
+}
+```
+
+##### 情景二：左旋转字符串
+
+```java
+//其实这种思想还可以用在链表，任何线性表的翻转上，两部分各自反转，再反转总的
+public class Solution {
+    public String LeftRotateString(String str,int n) {
+        
+        char[] array = str.toCharArray();
+        if(n>array.length||array.length<=0)
+            return str;
+        reverse(array,0,n-1);
+        reverse(array,n,array.length-1);
+        reverse(array,0,array.length-1);
+        
+        StringBuffer strb = new StringBuffer();
+        for(char c:array){
+            strb.append(c);
+        }
+        return strb.toString(); 
+    }
+    public void reverse(char[] array,int low,int high){
+        while(low<high){
+            char temp=array[low];
+            array[low]=array[high];
+            array[high]=temp;
+            low++;
+            high--;
+        }
+          
+    }
+}
+```
+
+
+
+### 42.和为S的连续正序列
+
+其实思想是差不多的
+
+##### 情景一：和为S的连续正序列
+
+```java
+//这就是和为S的连续正序列，运用一个small 一个big快慢指针，维护一个滑动窗口
+//其实是求连续序列和的一个小技巧，通常我们可以用循环求一个连续序列的和，但是考虑到每次操作之后的序列和操
+//操作之前的序列相比 大部分数字是一样的，这时候就需要维护一个滑动窗口了，但是不一定是增加一个或者几个数字
+//然后外部套一个while循环设置终止条件
+import java.util.ArrayList;
+public class Solution {
+    public ArrayList<ArrayList<Integer> > FindContinuousSequence(int sum) {
+             
+      int small =1;
+       int big=2;
+       int middle=(sum+1)/2;
+        int curSum=small+big;
+        ArrayList<ArrayList<Integer>> lists = new ArrayList<>();
+        while(small<middle){
+            
+            if(curSum==sum){
+                ArrayList<Integer> list = new ArrayList<>();
+                for(int i=small;i<=big;i++){
+                    list.add(i);      
+                }
+                lists.add(list);
+                big++;
+                curSum+=big;
+            }
+            while(curSum>sum){
+                curSum-=small;
+                small++;
+            }
+            while(curSum<sum){
+                big++;
+                curSum+=big;
+            }
+            
+        }
+        return lists;
+       
+    }
+    
+}
+
+```
+
+##### 情景二：和为S的两个整数
+
+```java
+import java.util.ArrayList;
+public class Solution {
+    public ArrayList<Integer> FindNumbersWithSum(int [] array,int sum) {
+        int low=0;
+        int high=array.length-1;
+        int min=Integer.MAX_VALUE;
+        ArrayList<Integer> list = new ArrayList<>();
+        while(low<high){
+            if(array[low]+array[high]==sum){
+                if(min>array[low]*array[high]){
+                    min=array[low]*array[high];
+                    if(!list.isEmpty())
+                        list.clear();
+                    list.add(array[low]);
+                    list.add(array[high]);
+                }
+                low++;
+                high--;
+            }
+            if(array[low]+array[high]>sum)
+                high--;
+            if(array[low]+array[high]<sum)
+                low++; 
+        }
+        return list;
+    }
+}
+```
+
+
+
+### 43.二叉树的下一个结点
+
+##### 情景一：二叉树的下一个结点
+
+```Java
+//二叉树的还比较简单，多叉树的就会很复杂了
+public class Solution {
+    public TreeLinkNode GetNext(TreeLinkNode pNode)
+    {
+        if(pNode.right!=null){
+            TreeLinkNode pCurrent=pNode.right;
+            while(pCurrent.left!=null)
+                pCurrent=pCurrent.left;
+            return pCurrent;
+        }
+        else{
+            if(pNode.next!=null){
+                TreeLinkNode pParent=pNode.next;
+                while(pParent!=null&&pNode==pParent.right){
+                    pNode=pParent;
+                    pParent=pNode.next;
+                }
+                return (pParent==null)? null:pParent;
+                    
+            }   
+            else
+                    return null;
+        }     
+    }
+}
+```
+
+##### 情景二：二叉树的上一个结点
+
+```java
+//这个上一个结点是对二叉树中序遍历顺序来说的
+```
+
+
+
+### 44.字符串的排列                                                                   
+
+##### 情景一：全排列类
+
+```
+
+```
+
+##### 情景二：组合类
+
+```
+
+```
 
 
 
@@ -1209,6 +1614,178 @@ public TreeNode find(TreeNode root,TreeNode p,TreeNode q){
 
 
 
+### 61.二叉树的遍历的非递归实现 ✅
+
+##### 情景一：二叉树的前序非递归前序遍历
+
+```java
+public List<Integer> preOrder(TreeNode root){
+    
+    Stack<TreeNode> stack = new Stack<>();
+    List<Integer> list = new ArrayList<>();
+    if(root==null)
+        return list;
+    stack.push(root);
+    while(!stack.isEmpty()){
+        TreeNode temp = stack.pop();
+        list.add(temp.val);
+        if(temp.left!=null)
+            stack.push(temp.left);
+        if(temp.right!=null)
+            stack.push(temp.right);
+    }
+    return list;  
+}
+```
+
+##### 情景二：二叉树的中序遍历非递归
+
+```java
+public List<Integer> inorderTraversal(TreeNode root) {
+        if(head != null) {
+            Stack<Node> stack = new Stack<>();
+            while(!stack.isEmpty() || head != null) {
+                if(head != null) {
+                    // 当前节点不为空, 将自己压进栈并将自己的左孩子作为当前节点（压入左边界）
+                   	//如果一直有左孩子就一直压入
+                    stack.push(head);
+                    head = head.left;
+                }else {
+                    // 当前节点为空（没有左孩子了）, 将栈顶元素弹出作为当前节点, 并将当前节点的右孩子压进栈
+                    head = stack.pop();
+                    System.out.print(head.val + " ");
+                    head = head.right;
+                }
+            }
+        }
+    }
+//其实也是一步步来，都怪自己太急躁了，哪有一步走到底的办法
+```
+
+##### 情景三：双栈实现后序遍历
+
+```java
+public List<Integer> postorderTraversal(TreeNode root) {   
+        Stack<TreeNode> stack1=new Stack<>();
+        Stack<TreeNode> stack2=new Stack<>();
+        List<Integer> list = new ArrayList<>();
+        if(root==null)
+            return list;
+        TreeNode temp=root;
+       stack1.push(root);
+        while(!stack1.isEmpty()){
+           temp= stack1.pop();
+           stack2.push(temp);
+            if(temp.left!=null){
+                stack1.push(temp.left);
+            }
+            if(temp.right!=null){
+                stack1.push(temp.right);
+            }     
+        }
+        while(!stack2.isEmpty()){
+            list.add(stack2.pop().val);
+        }
+        
+        return list;
+        
+    }
+```
+
+##### 情景四：叶结点弹出标记
+
+```java
+public List<Integer> postorderTraversal(TreeNode root) {
+        List<Integer> list = new ArrayList<>();
+        if(root==null)
+            return list;
+        TreeNode h=root;
+        if (h != null) {
+            Stack<TreeNode> stack = new Stack<TreeNode>();
+            stack.push(h);
+            TreeNode c = null;
+            while (!stack.isEmpty()) {
+                
+                c = stack.peek();
+                System.out.println(c.val);
+                if (c.left != null && h != c.left && h != c.right) {
+                    stack.push(c.left);
+                } else if (c.right != null && h != c.right) {
+                    stack.push(c.right);
+                } else {
+                    list.add(stack.pop().val);
+                    h = c;
+                }
+            }
+        }
+}
+//弹出标记 ，记录上一次弹出的结点，如果是左结点 不能是当前结点的左结点，如果是右结点，不能是当前结点的右结点 
+
+```
+
+##### 情景五：Z字形层次遍历二叉树
+
+```java
+import java.util.*;
+/*
+public class TreeNode {
+    int val = 0;
+    TreeNode left = null;
+    TreeNode right = null;
+
+    public TreeNode(int val) {
+        this.val = val;
+
+    }
+
+}
+*/
+public class Solution {
+    public ArrayList<ArrayList<Integer> > Print(TreeNode pRoot) {
+    
+        ArrayList<ArrayList<Integer>> lists=new ArrayList<>();
+        
+        if(pRoot==null)
+            return lists;
+        Stack<TreeNode> stack1 = new Stack<>();
+        Stack<TreeNode> stack2 = new Stack<>();
+        stack1.push(pRoot);
+        while(!stack1.isEmpty()||!stack2.isEmpty()){
+        if(!stack1.isEmpty()){
+            ArrayList<Integer> list = new ArrayList<>();
+            while(!stack1.isEmpty()){
+                 TreeNode temp=stack1.pop();
+                list.add(temp.val);
+                if(temp.left!=null)
+                    stack2.push(temp.left);
+                if(temp.right!=null)
+                    stack2.push(temp.right);  
+            }
+            lists.add(list);
+        }
+        else if(!stack2.isEmpty()){
+            ArrayList<Integer> list = new ArrayList<>();
+            while(!stack2.isEmpty()){
+                TreeNode temp=stack2.pop();
+                list.add(temp.val);
+                if(temp.right!=null)
+                    stack1.push(temp.right);
+                if(temp.left!=null)
+                    stack1.push(temp.left);  
+                
+            }
+            lists.add(list);
+        }
+        }
+        return lists;
+
+    }
+
+}
+```
+
+
+
 # 海量数据类题目
 
 <http://www.sohu.com/a/278216703_652662>
@@ -1225,7 +1802,9 @@ IP的数目还是有限的，最多2^32个，所以可以考虑使用hash将ip�
 
 **同样的数字/地址/字符串等等 用相同的哈希函数映射，最后一定在同一个文件里。**
 
-**然后在各个小文件中用hashmap进行频率统计，再整体遍历所有的hashmap，并用小根堆存储频率的最大值。**
+**然后在各个小文件中用hashmap进行频率统计，再整体遍历所有的hashmap，并用小根堆存储频率的最大值。**这是频率TopK的解法，hash真的是神器，其实还是
+
+equals和hashcode()的关系
 
 #### 场景2
 
@@ -1237,7 +1816,11 @@ IP的数目还是有限的，最多2^32个，所以可以考虑使用hash将ip�
 
 或者：采用trie树，关键字域存该查询串出现的次数，没有出现为0。最后用10个元素的最小推来对出现频率进行排序。
 
+其实还是 分治，hash，小文件内统计，小根堆TopK
 
+#### 场景3
+
+**有10个文件，每个文件1G，每个文件的每一行存放的都是用户的query，每个文件的query都可能重复。要求你按照query的频度排序。**
 
 ### 两个大文件求重复
 
@@ -1255,11 +1838,42 @@ IP的数目还是有限的，最多2^32个，所以可以考虑使用hash将ip�
 
 方案2：如果允许有一定的错误率，可以使用Bloom filter，4G内存大概可以表示340亿bit。将其中一个文件中的url使用Bloom filter映射为这340亿bit，然后挨个读取另外一个文件的url，检查是否与Bloom filter，如果是，那么该url应该是共同的url（注意会有一定的错误率）。
 
-
+两个文件呢？
 
 ### 海量整数找到不重复的整数
 
+#### 场景1
+
 T级大小AB文档，2g内存，要求找出重合部分的数据(分治的思路答出来了，然而思路偏到bitmap上去了，其实就是简单的在uid上通过哈希分组保证每次两组比较一次无需复用即可)
 
+方案1：采用2-Bitmap（每个数分配2bit，00表示不存在，01表示出现一次，10表示多次，11无意义）进行，共需内存内存，还可以接受。然后扫描这2.5亿个整数，查看Bitmap中相对应位，如果是00变01，01变10，10保持不变。所描完事后，查看bitmap，把对应位是01的整数输出即可。
 
+方案2：也可采用与第1题类似的方法，进行划分小文件的方法。然后在小文件中找出不重复的整数，并排序。然后再进行归并，注意去除重复的元素。
 
+#### 场景2
+
+**腾讯面试题：给40亿个不重复的unsigned int的整数，没排过序的，然后再给一个数，如何快速判断这个数是否在那40亿个数当中？**
+
+以下是其它更好的方法：
+
+方案1：oo，申请512M的内存，一个bit位代表一个unsigned int值。读入40亿个数，设置相应的bit位，读入要查询的数，查看相应bit位是否为1，为1表示存在，为0表示不存在。
+
+方案2：这个问题在《编程珠玑》里有很好的描述，大家可以参考下面的思路，探讨一下：又因为2^32为40亿多，所以给定一个数可能在，也可能不在其中；这里我们把40亿个数中的每一个用32位的二进制来表示假设这40亿个数开始放在一个文件中。
+
+然后将这40亿个数分成两类: 1.最高位为0 2.最高位为1 并将这两类分别写入到两个文件中，其中一个文件中数的个数<=20亿，而另一个>=20亿（这相当于折半了）；与要查找的数的最高位比较并接着进入相应的文件再查找
+
+再然后把这个文件为又分成两类: 1.次最高位为0 2.次最高位为1
+
+并将这两类分别写入到两个文件中，其中一个文件中数的个数<=10亿，而另一个>=10亿（这相当于折半了）； 与要查找的数的次最高位比较并接着进入相应的文件再查找。 ....... 以此类推，就可以找到了,而且时间复杂度为O(logn)，方案2完。
+
+附：这里，再简单介绍下，位图方法： 使用位图法判断整形数组是否存在重复 判断集合中存在重复是常见编程任务之一，当集合中数据量比较大时我们通常希望少进行几次扫描，这时双重循环法就不可取了。
+
+##### 补充bitmap
+
+位图法比较适合于这种情况，它的做法是按照集合中最大元素max创建一个长度为max+1的新数组，然后再次扫描原数组，遇到几就给新数组的第几位置上1，如遇到5就给新数组的第六个元素置1，这样下次再遇到5想置位时发现新数组的第六个元素已经是1了，这说明这次的数据肯定和以前的数据存在着重复。这种给新数组初始化时置零其后置一的做法类似于位图的处理方法故称位图法。它的运算次数最坏的情况为2N。如果已知数组的最大值即能事先给新数组定长的话效率还能提高一倍。
+
+#### 关于Trie树用作统计
+
+**一个文本文件，大约有一万行，每行一个词，要求统计出其中最频繁出现的前10个词，请给出思想，给出时间复杂度分析。**
+
+方案1：这题是考虑时间效率。用trie树统计每个词出现的次数，时间复杂度是O(n*le)（le表示单词的平准长度）。然后是找出出现最频繁的前10个词，可以用堆来实现，前面的题中已经讲到了，时间复杂度是O(n*lg10)。所以总的时间复杂度，是O(n*le)与O(n*lg10)中较大的哪一个。

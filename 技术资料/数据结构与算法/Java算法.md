@@ -380,7 +380,8 @@ public int BinarySearch(int arr[],int value,int low,int high){
         return BinarySearch(arr,value,mid+1,high);
 }
 
-二分查找的前提是数组必须有序。
+//二分查找的前提是数组必须有序。
+
 ```
 
 

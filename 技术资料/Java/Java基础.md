@@ -29,7 +29,7 @@
 
   1. 访问修饰符
 
-     ![](/Users/mrjiao/Documents/typora/java/assets/访问修饰符.png)
+     ![](../assets/访问修饰符.png)
 
      此处默认情况下，在包外的子类也可以访问父类的该属性。
 

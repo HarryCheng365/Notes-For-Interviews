@@ -334,11 +334,11 @@ HTTP状态码列表:
 
    ​	已存在缓存数据时，仅基于强制缓存，请求数据的流程如下：
 
-   ![](/Users/mrjiao/Documents/typora/%E5%9F%BA%E7%A1%80%E8%AF%BE/assets/http%20%E5%BC%BA%E5%88%B6%E7%BC%93%E5%AD%98.png)
+   ![](../assets/http%20%E5%BC%BA%E5%88%B6%E7%BC%93%E5%AD%98.png)
 
    ​	已存在缓存数据时，仅基于对比缓存，请求数据的流程如下：
 
-   ![](/Users/mrjiao/Documents/typora/%E5%9F%BA%E7%A1%80%E8%AF%BE/assets/http%20%E5%AF%B9%E6%AF%94%E7%BC%93%E5%AD%98.png)
+   ![](../assets/http%20%E5%AF%B9%E6%AF%94%E7%BC%93%E5%AD%98.png)
 
    ​	对缓存机制不太了解的同学可能会问，基于对比缓存的流程下，不管是否使用缓存，都需要向服务器发送请求，那么还用缓存干什么？这个问题，我们暂且放下，后文在详细介绍每种缓存规则的时候，会带给大家答案。
 
@@ -353,7 +353,7 @@ HTTP状态码列表:
    ​	**对于强制缓存来说，响应header中会有两个字段来标明失效规则**（Expires/Cache-Control）
    ​	使用chrome的开发者工具，可以很明显的看到对于强制缓存生效时，网络请求的情况：
 
-   ![](/Users/mrjiao/Documents/typora/%E5%9F%BA%E7%A1%80%E8%AF%BE/assets/http%20%E5%BC%BA%E5%88%B6%E7%BC%93%E5%AD%98%E5%AE%9E%E4%BE%8B.png)
+   ![](../assets/http%20%E5%BC%BA%E5%88%B6%E7%BC%93%E5%AD%98%E5%AE%9E%E4%BE%8B.png)
 
    强制缓存中，有以下几个请求头需要注意：
 
@@ -369,7 +369,7 @@ HTTP状态码列表:
 
      ​	如下图所示：
 
-     ​	![](/Users/mrjiao/Documents/typora/%E5%9F%BA%E7%A1%80%E8%AF%BE/assets/http%20%E5%BC%BA%E5%88%B6%E7%BC%93%E5%AD%98%E5%AE%9E%E4%BE%8B2.png)
+     ​	![](../assets/http%20%E5%BC%BA%E5%88%B6%E7%BC%93%E5%AD%98%E5%AE%9E%E4%BE%8B2.png)
 
      图中Cache-Control仅指定了max-age，所以默认为private，缓存时间为31536000秒（365天）
      也就是说，在365天内再次请求这条数据，都会直接获取缓存数据库中的数据，直接使用。
@@ -382,11 +382,11 @@ HTTP状态码列表:
 
    - 第一次访问：
 
-     ![](/Users/mrjiao/Documents/typora/%E5%9F%BA%E7%A1%80%E8%AF%BE/assets/http%20%E5%AF%B9%E6%AF%94%E7%BC%93%E5%AD%981.png)
+     ![](../assets/http%20%E5%AF%B9%E6%AF%94%E7%BC%93%E5%AD%981.png)
 
    - 第二次访问：
 
-     ![](/Users/mrjiao/Documents/typora/%E5%9F%BA%E7%A1%80%E8%AF%BE/assets/http%20%E5%AF%B9%E6%AF%94%E7%BC%93%E5%AD%982.png)
+     ![](../assets/http%20%E5%AF%B9%E6%AF%94%E7%BC%93%E5%AD%982.png)
 
    ​	通过两图的对比，我们可以很清楚的发现，在对比缓存生效时，状态码为304，并且报文大小和请求时间大大减少。原因是，**服务端在进行标识比较后，只返回header部分，通过状态码通知客户端使用缓存，不再需要将报文主体部分返回给客户端**。
 
@@ -872,6 +872,8 @@ TCP和UDP都是传输层（运输层）的协议
 
 
 
+
+### 补充：设计可靠UDP协议
 
 
 
