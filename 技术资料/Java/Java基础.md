@@ -10,6 +10,52 @@
 
 
 
+##### 加法很好理解
+
+```java
+public int add(int a,int b){
+    int temp=a&b;
+    int temp2=a^b;
+    if(temp>0){
+        temp<<<1;
+        temp2=add(temp,temp2)
+    }
+    return temp2;
+    
+}//一个递归调用而已
+//而减法就更简单了
+//add(~b,1)反码+1 求相应的补码，用补码表示负数进行相加 用补码表示负数和正数进行运算
+```
+
+
+
+
+
+##### 乘法要基于加法运算
+
+```java
+public int multiply(int a, int b) {　　
+    //将乘数和被乘数都取绝对值　
+    int multiplicand = a < 0 ? add(~a, 1) : a; 　　
+    int multiplier = b < 0 ? add(~b , 1) : b;　　
+    　
+    //计算绝对值的乘积　　
+    int product = 0;　　
+    while(multiplier > 0) {　　　　
+        if((multiplier & 0x1) > 0) {// 每次考察乘数的最后一位　　　　
+            product = add(product, multiplicand);　　　　
+        } 　　　　
+        multiplicand = multiplicand << 1;// 每运算一次，被乘数要左移一位　　　　
+        multiplier = multiplier >> 1;// 每运算一次，乘数要右移一位（可对照上图理解）　　
+    } 　　
+    //计算乘积的符号　　
+    if((a ^ b) < 0) {　　　　
+        product = add(~product, 1);　　
+    } 　　
+    return product;
+}
+```
+
 
 
 # 面向对象
@@ -174,6 +220,8 @@
 
   　　**补充说明：**在比较一个对象是否和另一个对象属于同一个类实例的时候，我们通常可以采用instanceof和getClass两种方法通过两者是否相等来判断，但是两者在判断上面是有差别的。Instanceof进行类型检查规则是:**你属于该类吗？或者你属于该类的派生类吗？**而通过getClass获得类型信息采用==来进行检查是否相等的操作是**严格的判断**,**不会存在继承方面的考虑**；
 
+  instanceOf 就是作用在父类上的看看父类指向了哪个子类的引用，指向不同子类的父类引用是不可以进行类型转换的，会在运行时出错。
+
 ##### JVM中多态的引用调用过程
 
 ​	实例如下：
@@ -206,7 +254,11 @@ public class Test {
 ​	**类B是类A的子类， A a = new B() 编译时变量和运行时变量不一样，所以多态发生了。**
 
 - A a 作为一个引用类型数据，存储在JVM栈的**本地变量表**中。 
+
+  引用数据类型会存在线程独有的虚拟机栈的本地变量表中
+
 - new B()作为**实例对象数据**存储在堆中，Ｂ的对象实例数据（接口、方法、field、对象类型等）的地址也存储在堆中，Ｂ的对象的类型数据（对象实例数据的地址所执行的数据）存储在方法区中。
+
 - java虚拟机规范中并未对引用类型访问具体对象的方式做规定，目前主流的实现方式主要有两种：
 
 1. 通过句柄访问：
@@ -215,13 +267,13 @@ public class Test {
 
    结构图如下：
 
-   ![](/Users/mrjiao/Documents/typora/java/assets/通过句柄访问具体对象.png)
+   ![](../assets/通过句柄访问具体对象.png)
 
 2. 通过直接指针访问
 
    通过直接指针访问的方式中，reference中存储的就是对象在堆中的实际地址，在堆中存储的对象信息中包含了在方法区中的相应类型数据。**这种方法最大的优势是速度快，在HotSpot虚拟机中用的就是这种方式**。
 
-   ![](/Users/mrjiao/Documents/typora/java/assets/通过直接指针访问对象.png)
+   ![](../assets/通过直接指针访问对象.png)
 
 # [自动装箱与拆箱](http://www.cnblogs.com/liuling/archive/2013/05/05/intAndInteger.html)
 

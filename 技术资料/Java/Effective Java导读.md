@@ -126,5 +126,67 @@ substring(int beginIndex,int endIndex){
 }//beginIndex 就是以新的beginIndex开头，包含beginIndex所指向的字符，如果把字符串看成一个数组，然后不包含endIndex的字符，因此endIndex可以为s.length()
 ```
 
+### 覆盖equals()方法要注意的
+
+- 自反性 x.equals(x)
+- 一致性 x.equals(x)每次返回的结果应该一致
+- 传递性 x.equals(b),b.equals(c),x应该 euqals(c)
+- 对称性 x.equals(b), b.equals(x)结果应该一致
+- 
+
+### 谨慎的覆盖clone()方法
+
+- 1.Cloneable 是一个空的接口，决定了clone()的实现方式,如果一个类实现了Cloneable，那么Object的clone()方法就会返回该对象的逐域拷贝，否则会抛出异常
+- 2.如果实现了Cloneable，就表示该类和所偶超类都要遵循一个机制：无需构造器就可以创建对象
+- 3.Object的clone()在拷贝的的时候是拷贝引用和数值，所以原对象和clone对象中域的引用是指向相同的对象，因此如果域引用了可变的对象，那么就会造成问题。
+- 4.为了解决3的问题，要对一个对象实施clone()的时候，需要根据类的域的类型来判断是否要对域进行clone()，而在对域进行clone()的时候同样也会有3的问题。
+- 5.所以为了克隆复杂的对象，最后的方法就是先调用Object的clone(),然后将所有域置为空白，最后调用类的api来重新产生对象状态。
+- 6.另一个实现对象拷贝的办法就是提供一个对象拷贝构造器或者拷贝工厂。
+
+为什么要谨慎覆盖clone()方法，主要是复制了基本类型的域，但是clone出来的新的对象可能还指向引用类型的域
+
+现在了解Object类的clone()方法：
+
+protected native Object clone() throws CloneNotSupportedException;
+
+clone()方法是一个受保护的本地方法。
+
+clone()方法的通用约束如下：
+
+x.clone() != x        应该返回true
+
+x.clone().getClass() == x.getClass()        应该返回true
+
+x.clone().equals(x)           应该返回true
+
+覆盖Clone记得覆盖equals()方法，覆盖equals记得覆盖hashcode()方法，
 
 
+
+<https://www.cnblogs.com/wangliyue/p/4453658.html>
+
+简而言之，所有实现了Cloneable接口的类都应该有一个公有的方法覆盖从Object类继承而来的clone()方法，此公有方法先调用super.clone()，
+
+得到一个“浅拷贝”的对象，然后根据原对象的实例域的情况，修正任何需要修正的域。一般情况下，这意味这要拷贝任何包含内部“深层结构”
+
+的可变对象。并将新对象的引用代替原来指向这些对象的引用。虽然，这些内部拷贝操作往往可以通过层层递进的调用clone()来完成（要求图中的Apple类和Dog类也必须正确的提供公有的clone()方法），但这通常不是最佳的方法。如果该类只包含基本类型的域，和不可变类型的引用域，
+
+那么多半情况下是没有域需要修正的。但是如果引用域只有不可变类型的引用域...
+
+- Object中的clone()默认是浅copy，调用super.clone()方法 引用类型域需要自己操作进行变更
+
+### 始终覆盖toString()方法
+
+### 深copy，浅copy
+
+shen
+
+##### 深copy 
+
+引用类型域和基本类型域都会被copy
+
+
+
+##### 浅copy
+
+调用父类的super.clone()就是浅copy的代表方法

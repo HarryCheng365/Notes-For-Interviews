@@ -4,13 +4,95 @@
 
 主要就是 Map Set List Queue 这几个接口
 
+
+
+# 容器中的设计模式
+
+### 迭代器模式
+
+collection继承了iterator接口，其中的iterator()
+
+Collection 继承了 Iterable 接口，其中的 iterator() 方法能够产生一个 Iterator 对象，通过这个对象就可以迭代遍历 Collection 中的元素。
+
+从 JDK 1.5 之后可以使用 foreach 方法来遍历实现了 Iterable 接口的聚合对象
+
+### 适配器模式
+
+可以把数组转换成list类型
+
+应该注意的是 asList() 的参数为泛型的变长参数，不能使用基本类型数组作为参数，只能使用相应的包装类型数组。
+
+```java
+List list = Arrays.asList(1, 2, 3);
+```
+
+##### 
+
+# Collection中的Comparable和Comparator
+
+Comparable可以认为是一个内比较器，实现了Comparable接口的类有一个特点，就是这些类可以和自己比较？至于具体实现Comparable的类如何比较，则依赖compareTo的方法的实现，compareTo方法也被称为自然比较方法？
+
+如果开发者用一个collection对象想要用Collections工具类的sort方法帮你进行自动排序的话，那么这个接口必须实现Comparable接口，compareTo方法返回的值是int
+
+大于的话，返回正整数
+
+等于 返回0
+
+小于返回负整数
+
+```java
+public class Domain implements Comparable<Domain>
+{
+private String str;
+public Domain(String str){
+this.str=str;
+}
+public int compareTo(Domain domian){
+if(this.str.compareTo(domian.str)>0)
+return 1;
+else if(this.str.compareTo(domain.str)==0)
+return 0;
+
+}
+//其实就是两个str进行比较，因为str也implement了comparable的接口
+}
+```
+
+
+
+# Vector
+
+##### 线程的安全性不同
+
+vector是线程安全的,在vector的大多数方法都使用synchronized关键字修饰，arrayList是线程不安全的（可以通过Collections.synchronizedList（）实现线程安全）
+
+##### 效率也有问题
+
+vector 效率很低，因为要获取同步锁和释放锁，所以执行过程中效率会低于ArrayList，另外，性能还体现在底层的Object数组上，
+
+同时vector的增量不是乘，二是加，如果不传入增量，就会按二倍进行扩容
+
+可以看出来，arrayList多了一个transient关键字，这个关键字的作用是防止序列化，然后在ArrayList中重写了了readObject和writeObject方法，这样是为了在传输时提高效率。
+
+##### 每次扩容是2倍 而ArrayList是1.5
+
 # ArrayList
 
-
+##### 补充：RandomAccess 接口标志着接受随机访问
 
 ​	线程不安全。底层实现原理为动态数组扩容，但要额外注意对各种异常情况的考虑。
 
 ​	基础功能实现代码：
+
+##### 补充：迭代器的Fail-Fast Fail-Fast什么意思
+
+modCount 用来记录 ArrayList 结构发生变化的次数。结构发生变化是指添加或者删除至少一个元素的所有操作，或者是调整内部数组的大小，仅仅只是设置元素的值不算结构发生变化。
+
+在进行序列化或者迭代等操作时，需要比较操作前后 modCount 是否改变，如果改变了需要抛出 ConcurrentModificationException。
+
+
+
+
 
 已经没什么好底层的了，已经底层到连续物理内存空间的分配了，还有什么更底层的？汇编？
 
@@ -2485,6 +2567,10 @@ CopyOnWrite容器即写时复制的容器，适用于读操作远多于修改操
 
 - 这样做的好处是我们可以对CopyOnWrite容器进行并发的读，而不需要加锁，因为当前容器不会添加任何元素。所以CopyOnWrite容器也是一种读写分离的思想，读和写不同的容器。
 
+  CopyOnWrite这种读写分离的思想，同时读写分离，
+
+  在写的事务没有完成 没有提交前，是不会出现脏读问题的
+
 　　从JDK1.5开始Java并发包里提供了两个使用CopyOnWrite机制实现的并发容器，它们是CopyOnWriteArrayList和CopyOnWriteArraySet。CopyOnWrite容器主要存在两个弱点：
 
 - 容器对象的复制需要一定的开销，如果对象占用内存过大，可能造成频繁的MinorGC和Full GC；
@@ -2510,6 +2596,10 @@ public void clear() {
 ```
 
 - ConcurrentHashMap中的迭代操作是弱一致的(未遍历的内容发生变化可能会反映出来)：在遍历过程中，如果已经遍历的数组上的内容变化了，迭代器不会抛出ConcurrentModificationException异常。如果未遍历的数组上的内容发生了变化，则有可能反映到迭代过程中。
+
+
+
+
 
 
 

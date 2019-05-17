@@ -81,7 +81,8 @@
   >find ~ -iname "test*"
   ```
 
-  
+
+find命令支持通配符号
 
 
 

@@ -6,6 +6,20 @@
 
 多线程与并发的学习，首先是
 
+##### 补充：关于并发和并行
+
+解释一：并行是指两个或者多个事件在同一时刻发生；而并发是指两个或多个事件在同一时间间隔发生。
+解释二：并行是在不同实体上的多个事件，并发是在同一实体上的多个事件。
+解释三：在一台处理器上“同时”处理多个任务，在多台处理器上同时处理多个任务。如hadoop分布式集群
+
+支持并发：同一时间，可以有多个任务发生，但是同一时间只能执行一个，并且可以交替执行
+
+也就是涉及到同步和互斥，有资源的共享
+
+支持并行：两个或者多个时间在同一个时刻发生，可以互相独立执行互不影响，也就是说，没有资源的抢占，可以并行不悖，但是这个在单核CPU是不行的，因为就算其他的不强，CPU计算资源也是要抢的，多核CPU可以并行，没有数据共享（同步问题）或者资源互斥的话可以实现并行，否则还需要并发控制。
+
+进程间可以进行通信，通过子父进程的匿名管道，命名管道，或者信箱或者消息队列之类的，数据共享区也是可以的，但是需要进行并发控制。
+
 ##### 并发基础和多线程
 
 首先需要学习的就是并发的基础知识，什么是并发，为什么要并发，多线程的概念，线程安全的概念等。
@@ -36,6 +50,9 @@ JMM只保证happens-before和as-if-serial规则，所以在多线程并发时，
 
 **原理层面**synchronized是基于操作系统的mutex lock指令实现的，volatile和final则是根据JMM实现其内存语义。
 此处还要了解CAS操作，它不仅提供了类似volatile的内存语义，并且保证操作原子性，因为它是由硬件实现的。
+
+寄存器指令。
+
 JUC中的Lock底层就是使用volatile加上CAS的方式实现的。synchronized也会尝试用cas操作来优化器重量级锁。
 
 ##### JUC包
@@ -143,7 +160,17 @@ CPU层面的 还有缓存一致协议，感觉就是volatile可见性
 ##### 如何停止一个线程
 
 1. 使用volatile变量终止正常运行的线程 + 抛异常法/Return法
+
+   ```java
+   //正常线程run结束就会退出线程，但是有可能如监听等情况 会采用一个循环 不断jian ting
+   ```
+
+   
+
 2. 组合使用interrupt方法与interruptted/isinterrupted方法终止正在运行的线程 + 抛异常法/Return法
+
+   
+
 3. 使用interrupt方法终止 正在阻塞中的 线程 阻塞就是  wait();
 
 ### 线程之间的协作
@@ -260,11 +287,6 @@ volatile 只能保证 “可见性”，不能保证 “原子性”。count++; 
 所以，如果有多个线程同时在执行 count++;，在某个线程执行完第（3）步之前，其它线程是看不到它的执行结果的。 
 在没有 volatile 的时候，执行完 count++;，执行结果其实是写到CPU缓存中，没有马上写回到内存中，后续在某些情况下（比如CPU缓存不够用）再将CPU缓存中的值flush到内存。正因为没有马上写到内存，所以不能保证其它线程可以及时见到执行的结果。 
 在有 volatile 的时候，执行完 count++;，执行结果写到CPU缓存中，并且同时写回到内存，因为已经写回内存了，所以可以保证其它线程马上看到执行的结果。但是，volatile 并没有保证原子性，在某个线程执行（1）（2）（3）的时候，volatile 并没有锁定 count 的值，也就是并不能阻塞其他线程也执行（1）（2）（3）。可能有两个线程同时执行（1），所以（2）计算出来一样的结果，然后（3）存回的也是同一个值。 
-补充几篇资料： 
-（1）java 内存模型：Java Memory Model 
-（2）java volatile 关键字：Java Volatile Keyword 
-
-（3）使用 volatile 的一些pattern：Java theory and practice: Managing volatility
 
 
 
@@ -363,7 +385,7 @@ Share（共享，多个线程可同时执行，如Semaphore/CountDownLatch）。
 
 ##### **Semaphore 是互斥信号量**
 
-semaphore也是两个主要方法，一个是acquire() 一个是release() 正好和countDownLatch的作用相反，acquire代表获取到可用的Semaphore，如果达到指定上限则其他获取 就会阻塞
+semaphore也是两个主要方法，一个是acquire() 一个是release() 正好和countDownLatch的作用相反，acquire代表获取到可用的Semaphore，如果达到指定上限则其他获取 就会阻塞其他获取请求
 
 ```java
 Semaphores are often used to restrict the number of threads than can
@@ -470,9 +492,63 @@ Semaphore恰恰相反
 
 意思是，CountDownLatch 直到数量为0才会执行，和Semaphore正好相反，虽然都是同步信号量
 
-##### Condition 同步信号量
+##### 互斥锁 Condition 同步信号量
 
-另外condition也是同步信号量，就是简化版本的semaphore个人感觉
+另外condition也是同步信号量，就是简化版本的Semaphore吧 可用数量为1 上限为1那种Semaphore 主要是做 信息传递用，condition和互斥锁绑定使用，可以更精确的控制线程何时挂起 何时执行
+
+##### 补充：CyclicBarrier和CountdownLatch
+
+CountdownLatch其实很好立即，其实就相当于一个计数器，没执行一次调用countdown一下 总次数减一，用await方法等待信号，减到0后，await方法后的部分才会执行
+
+CyclicBarrier
+
+回环栅栏
+
+这个也很好理解，就是让某一组线程都等待至某个状态后再全部同时执行，叫做回环是因为当所有等待线程被释放后，CyclicBarrier可以重用
+
+就是等待所有线程都到Barrier状态，并且达到barrier状态后 barrier还实现了run方法，会从N个线程中选一个出来执行，上一轮达到barrier状态后，可以重用
+
+```java
+public class Test {
+    public static void main(String[] args) {
+        int N = 4;
+        CyclicBarrier barrier  = new CyclicBarrier(N,new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("当前线程"+Thread.currentThread().getName());   
+            }
+        });
+         
+        for(int i=0;i<N;i++)
+            new Writer(barrier).start();
+    }
+    static class Writer extends Thread{
+        private CyclicBarrier cyclicBarrier;
+        public Writer(CyclicBarrier cyclicBarrier) {
+            this.cyclicBarrier = cyclicBarrier;
+        }
+ 
+        @Override
+        public void run() {
+            System.out.println("线程"+Thread.currentThread().getName()+"正在写入数据...");
+            try {
+                Thread.sleep(5000);      //以睡眠来模拟写入数据操作
+                System.out.println("线程"+Thread.currentThread().getName()+"写入数据完毕，等待其他线程写入完毕");
+                cyclicBarrier.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }catch(BrokenBarrierException e){
+                e.printStackTrace();
+            }
+            System.out.println("所有线程写入完毕，继续处理其他任务...");
+        }
+    }
+}
+```
+
+
+
+
 
 不同的自定义同步器争用共享资源的方式也不同。自定义同步器在实现时只需要实现共享资源state的获取与释放方式即可，至于具体线程等待队列的维护（如获取资源失败入队/唤醒出队等），AQS已经在顶层实现好了。自定义同步器实现时主要实现以下几种方法：
 
@@ -665,6 +741,26 @@ pool-1-thread-1 wake up ..
 
 Thread类是java下实现多线程的核心类。
 
+关于线程：
+
+### Java分为两种线程：用户线程和守护线程
+
+##### 什么是守护线程
+
+Thread.setDaemon(true)的方法来实现，daemon，在使用守护线程的时候需要注意以下几点，一个是
+
+thread.setDaemon(true)必须在thread.start()之前设置，否则会抛出一个illegalThreadStateException的异常。你不能把正在运行的常规线程设置为守护线程。
+
+守护线程中新产生的线程也是Daemon的
+
+守护线程应该永远不去访问固有资源，如文件，数据库等，因为他可能在任何一个操作的中间发生中断
+
+所谓守护线程是指在程序运行的时候在后台提供一种通用服务的线程，比如垃圾回收线程，就是一个很称职的守护线程，并且这种线程并不属于程序中不可或缺的部分，因此当所有的非守护线程结束了，程序也就停止了，同时会杀死进程中所有的守护线程，反过来说，如果说，任何非守护线程还在运行，程序就不会停止
+
+守护线程和用户线程本质没啥区别，唯一的不同之处就在于虚拟机的离开，如果用户线程已经
+
+
+
 ### start()与run()
 
 - start()方法是Thread类中的方法，核心是其中调用了private native void start0()方法，该方法是native方法，底层有jvm实现。最后由jvm创建新的线程并调用run()方法，实现真正的创建线程操作。其调用结构图如下：
@@ -730,9 +826,18 @@ current thread : Thread-0	//调用start()方法创建了新的线程，调用sta
 
 ### Thread和Runnable
 
+##### Thread和Runnable的区别
+
+由于Thread是和
+
 ​	Runnable为接口，其中只包含一个run()方法，Thread是实现Runable接口的类，run()方法支持多线程。
 
+- Thread方法 不能支持线程间的共享
+- 但是Runnable接口，多个线程可以执行同一个Runnable接口 实现数据共享(记得给run()方法 加synchronized关键字，所以还是并发的方法)
+
 ​	另外，在实际业务开发中，推荐多使用Runable接口，将业务封装在run()方法中，使得代码结构更清晰。示例代码如下：
+
+补充
 
 ```java
 /**
@@ -852,6 +957,8 @@ public class SubThreadReturnValue implements Runnable {
 
 ##### join()阻塞法
 
+​	fork( )/join()框架吧，fork()将任务拆分成一个个小的子任务，join则把他们结果连接起来，其实应该是子任务也有一个结果队列？然后到队列中去取值
+
 ​	使用Thread类中的**join()**方法阻塞当前线程以等待子线程处理完毕。该方法的实现简单并且可以做到较为精准的控制（子线程一结束就可以执行主线程），但依旧无法做到十分精准的控制，如想让 i 在等于1的时候停止。
 
 ```java
@@ -873,6 +980,12 @@ public class SubThreadReturnValue implements Runnable {
 ##### 通过Callable接口
 
 ​	通过Callable接口实现：Callable接口中只有一个 "V call()" 方法，通过该接口有两种实现方式：FutureTask和线程池。
+
+​	Callable 接口中 有一个call()方法，返回一个String 带返回值的方法 
+
+##### Future和FutureTask的关系
+
+Future是一个接口，FutureTask是Future的实现类
 
 - FutureTask：具体要注意的细节见下面的代码
 
@@ -970,9 +1083,9 @@ public class SubThreadReturnValue implements Runnable {
 
 ​	线程已经结束状态，即run()方法已经运行完。处于终结状态的线程不可以再使用，否则会抛出IllegalThreadStateException异常。
 
-##### 状态转换图
+### 补充：ThreadLocal是什么
 
-![]()
+
 
 # Java锁的分类及优化 ✅
 
@@ -1439,15 +1552,12 @@ java的对象头由以下三部分组成：
 
 ### Synchronized和Lock概述
 
-```
 synchronized 是java的关键字 是 java的内置特性，在JVM层面实现了对临界资源的同步互斥访问，但是synchronized粒度有些大，在处理时机问题时有诸多局限性，比如响应中断等。
 Lock提供了比synchronized更广泛的锁操作，它能以更优雅的方式处理线程问题。
 synchronized和Lock的对比为切入点，对java中Lock框架的枝干部分进行了介绍。
-```
 
 ### Synchronized的局限性和Lock的优点：
 
-```
 对于Synchronized来说：
 占有锁的线程执行完了会释放
 waiting了会释放比如 在线程内调用wait元素
@@ -1456,17 +1566,18 @@ waiting了会释放比如 在线程内调用wait元素
 1.在长时间io或者线程内调用sleep的时候不会释放
 2.读与写，写与写是互斥的很好理解，但是读与读应该是可以共享的，这里就体现了synchronized锁粒度大的问题，应当设计一种机制来使得多个线程都是读操作的时候，线程之间不会发生冲突。Lock 的 ReentrantReadWriteLock就出现了
 3.我们也可以通过Lock的值
-```
 
 ### Synchronized和Lock的具体区别
 
-```
 1.synchronized是Java的关键字，因此是Java的内置特性，是基于JVM层面实现的，
 其经过编译之后，会在同步块的前后分别形成 monitorenter 和 monitorexit 两个字节码指令；
 而Lock是一个Java接口，是基于JDK层面实现的，通过这个接口可以实现同步访问；
 
 2.采用synchronized方式不需要用户去手动释放锁，当synchronized方法或者synchronized代码块执行完之后，系统会自动让线程释放对锁的占用；而 Lock则必须要用户去手动释放锁 (发生异常时，不会自动释放锁)，如果没有主动释放锁，就有可能导致死锁现象。
-3.可中断，响应中断，Lock可以让等待锁的线程响应中断，Lock锁就不会一直傻等下去，线程可以不用一直等待就结束了，而使用synchronized时，等待的线程会一直等待下去，不能够响应终端 
+3.可中断，响应中断，Lock可以让等待锁的线程响应中断，Lock锁就不会一直傻等下去，线程可以不用一直等待就结束了，而使用synchronized时，等待的线程会一直等待下去，不能够响应中断
+
+就是阻塞队列中的线程，是乐观循环获取的
+
 4.立即返回
 5.读共享，读写锁
 6.可以实现公平锁
@@ -1475,11 +1586,9 @@ synchronized在发生异常时，会自动释放线程占有的锁，因此不�
 
 而Lock在发生异常时，如果没有主动通过unLock()去释放锁，则很可能造成死锁现象，因此使用Lock时需要在finally块中释放锁；一定要在finally中释放锁
 
-```
-
 #### Lock接口与实现关系
 
-![2446D75C-8BDF-4AFC-9F17-47D14BFD483B](assets/2446D75C-8BDF-4AFC-9F17-47D14BFD483B.png)
+![2446D75C-8BDF-4AFC-9F17-47D14BFD483B](../assets/2446D75C-8BDF-4AFC-9F17-47D14BFD483B.png)
 
 ```
 可以看到lock有由lock产生的condition实例接口
@@ -1491,17 +1600,9 @@ synchronized在发生异常时，会自动释放线程占有的锁，因此不�
 
 它提供了比synchronized关键字更灵活、更广泛、粒度更细的锁操作，底层是由AQS实现的。
 
-```
-
-```
-
 
 
 #### 关于Condition
-
-
-
-
 
 - 弱引用与强引用？软引用，虚引用？
 
@@ -1534,7 +1635,8 @@ synchronized在发生异常时，会自动释放线程占有的锁，因此不�
 
 ### 什么是线程池，如何创建一个线程池
 
-```
+ThreadPoolExecutor 继承了AbstractExecutorService 并且AbstractExecutorService实现了ExecutorService接口，并且ExecutorService实现了Executor接口
+
 一个线程池管理了一组工作线程，同时它还包括一个用于放置等待执行的任务的队列。
 线程池可以避免线程的频繁创建与销毁，降低资源消耗，提高系统反应速度。
 java.util.concurrent.Executors 提供了几个Java.Util.concurrent.Executor接口的实现，用于创建线程池，其主要涉及四个角色
@@ -1543,19 +1645,26 @@ java.util.concurrent.Executors 提供了几个Java.Util.concurrent.Executor接�
 工作线程Worker线程，Worker的run()方法执行Job的run()方法
 任务Job：Runable 和 Callable
 阻塞队列：BlockingQueue，用过这个容器接口了
-```
 
 ##### 线程池Executor
 
 - Executor及其实现类是用户级的线程调度器，也是对任务执行机制的抽象，其将任务的提交与任务的执行分离开来，核心实现类包括ThreadPoolExecutor(用来执行被提交的任务)和ScheduledThreadPoolExecutor  (可以在给定的延迟后执行任务或者周期性执行任务)。
 
-- Executor的实现继承链条为：(父接口)Executor -> (子接口)ExecutorService -> (实现类)[ ThreadPoolExecutor + ScheduledThreadPoolExecutor ]。
+- Executor的实现继承链条为：(父接口)Executor -> (子接口)ExecutorService -> (实现类)[ ThreadPoolExecutor + ScheduledThreadPoolExecutor ]
+
+  md原来这里有写啊
 
 ##### 任务Runnable/Callable
 
 - Runnable（run）和Callable（call）都是对任务的抽象，但是Callable可以返回任务执行的结果或者抛出异常
 
   在Thread板块，有对Callable和Runnable的详细讲解，还有Runnable和Thread的区别
+  
+  实现线程有三种方法，一种是 继承Thread类 重写run方法 ，用start进行调用
+  
+  一种是构造一个runnable对象 对run方法进行重写，或者自己写一个runnable对象 实现Runnable接口
+  
+  另一种是构造一个callable对象 然后把callable对象封装在一个futureTask中 
 
 ##### 任务执行状态future
 
@@ -1563,7 +1672,13 @@ java.util.concurrent.Executors 提供了几个Java.Util.concurrent.Executor接�
 
 ##### 四种常用线程池
 
-```
+线程池的构造函数 除了
+
+corePoolSize之外 还有maximumPoolSize规定上界 还有KeepAliveTime  每一个线程活跃的时间》
+
+ThreadFactory 还有含有ThreadFactory的 比如 可以用setNameFormat方法 对名称进行重写
+
+还有RejectedExecutionHandler
 
 1.FixedThreadPool
 用于创建使用固定线程数的ThreadPool，corePoolSize = maximumPoolSize = n(固定的含义)，阻塞队列为LinkedBlockingQueue。
@@ -1572,8 +1687,6 @@ public static ExecutorService newFixedThreadPool(int nThreads) {
                                       0L, TimeUnit.MILLISECONDS,
                                       new LinkedBlockingQueue<Runnable>());
     }
-    
-    
 2.SingleThreadExecutor
 用于创建一个单线程的线程池，corePoolSize = maximumPoolSize=1 阻塞队列为LinkedBlockingQueue
 3.CachedThreadPool
@@ -1586,10 +1699,31 @@ public ScheduledThreadPoolExecutor(int corePoolSize) {
               new DelayedWorkQueue());
     }
 
-
-```
-
 ### 线程池的饱和策略
+
+饱和策略其实就是 一个是等待队列的选择
+
+等待队列有哪几种？
+
+饱和策略就是等待队列也满了怎么办？
+
+所以就有 RejectionHandler.abortion 等
+
+### 补充：三种阻塞队列
+
+java线程池需要传入一个Queue参数(workQueue)用来存放执行的任务，而对Queue的不同选择，线程池有完全不同的行为
+
+##### SynchronousQueue
+
+是一个无容量的等待队列，一个线程insert操作必须等待另一线程的remove操作，采用这个Queue线程池将会为每个任务分配一个新线程
+
+##### LinkedBlockingQueue
+
+无界队列，采用该Queue，线程池将忽略maximumPoolSize参数，仅用corePoolSize 的线程处理所有的任务，尾处理的任务便在LinkedBlockingQueue中排队
+
+##### ArrayBlockingQueue
+
+有界队列，在有界队列和maximumPoolSize的作用下，线程很难被调优，更大的Queue和小的maximumPoolSize将导致CPU的低负载；小的Queue和大大池
 
 ### 线程池调优
 
@@ -1604,16 +1738,28 @@ public ScheduledThreadPoolExecutor(int corePoolSize) {
 ### 五大线程池
 
 1. Executors.newFixedThreadPool(int nThreads)：指定工作线程数量的线程池。
+
 2. Executors.newCachedThreadPool()：处理短时间工作任务的线程池，其有如下特点：
    - 试图缓存线程并重用，当无缓存线程可用时，就会创建新的工作线程。
    - 如果线程闲置的时间超过阈值（一般60s），则会被终止并移出缓存，这样就保证了在系统长时间闲置的时候，其不会消耗什么资源。
+   
 3. Executors.newSingleThreadExecutor()：创建唯一的工作者线程来执行任务，如果线程异常结束，会有另一个线程来取代它。
+
 4. Executors.newSingleThreadScheduledExcutor()与Executors.newSheduledThreadPool(int poolSize)：定时或周期性的工作调度，两者的区别在于应用于单一工作线程和多个工作线程。
+
 5. Executors.newWorkStealingPool()：内部会构建ForkJoinPool()，利用working-stealing算法，并行地处理任务，不保证处理顺序。
+
+   ForkJoinPool() Work-Stealing 算法？并行的处理任务？
+
+
+
+第五大线程池就是WorkStealingPool
+
+newCachedThreadPool 将创建一个可缓存的线程池，如果线程池当前的规模超过了处理需求的时候，那么将回收空闲的线程，而当需求增加的时候可以无上限的添加新的线程，线程池也就是不设置maximum 
 
 ### 线程池类图结构
 
-![](./assets/ThreadPool%E7%B1%BB%E5%9B%BE%E7%BB%93%E6%9E%84.png)
+![](../assets/ThreadPool%E7%B1%BB%E5%9B%BE%E7%BB%93%E6%9E%84.png)
 
 ### J.U.C三个接口
 
@@ -1649,9 +1795,19 @@ ExecutorService.newSingleExecutorService().execute(t);
 
 ​	支持Future和定期执行任务。
 
+
+
+
+
 ### ThreadPoolExecutor详解
 
 ​	ThreadPoolExecutor继承自AbstractExecutorService，AbstractExecutorService实现自ExecutorService。
+
+Fixed 核心线程和最大线程一致
+
+single只有一个 
+
+cached 最大线程数 很大，核心线程以外的线程不会被立即销毁，二是 等待时间超过KeepAliveTime才会销毁
 
 ##### 构造函数参数
 
@@ -1671,6 +1827,8 @@ ExecutorService.newSingleExecutorService().execute(t);
 
 - threadFactory：创建新线程使用的工厂，默认使用的是Executors.defaultThreadFactory()，使用该工厂创建线程会使创建的线程具有相同的priority，并且是非守护线程，同时也设置了线程名称。
 
+  守护线程与非守护线程
+
 - handler：线程池饱和策略。当阻塞队列满了并且有新的任务提交时，就需要采取一种饱和策略来处理该任务。线程池当前提供了四种策略：
 
   - AbortPolicy：直接抛出异常，这是默认策略
@@ -1687,9 +1845,11 @@ ExecutorService.newSingleExecutorService().execute(t);
 
 3. 当线程池中已经运行了maximumPoolSize数量的线程，还有新任务提交时，如果workQueue未满，则将任务放入workQueue中，若满了，则通过handler策略来处理任务。
 
+   handler策略来处理任务
+   
    其大致流程如下图所示：
 
-![](assets/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%A4%84%E7%90%86%E6%96%B0%E4%BB%BB%E5%8A%A1%E6%B5%81%E7%A8%8B.png)
+![](../assets/%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%A4%84%E7%90%86%E6%96%B0%E4%BB%BB%E5%8A%A1%E6%B5%81%E7%A8%8B.png)
 
 ### 线程池的状态
 
@@ -1715,7 +1875,6 @@ ExecutorService.newSingleExecutorService().execute(t);
 
 # 单例模式与多线程
 
-```
 - 饿汉模式线程安全
 - 懒汉模式是非线程安全的
 - 多线程环境下如何创建线程安全的单例
@@ -1731,6 +1890,4 @@ ExecutorService.newSingleExecutorService().execute(t);
 
 - 单例模式的优点
 - 使用单例模式的时候，必须使用单例类提供的公有工厂方法得到单例对象，而不应该用反射机制
-
-```
 

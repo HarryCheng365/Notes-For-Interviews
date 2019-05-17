@@ -162,6 +162,44 @@ java使用起来很方便，但是java保证灵活性的同时，保持多态的
 
 
 
+##### 补充：JVM启动的时候 
+
+mx指定了Java虚拟机（JVM）的最大内存分配池，同时Xms指定了初始内存分配池。就是JVM默认堆的大小。
+
+这意味着您的JVM将以Xms大量内存启动，并且将能够使用最Xmx大量的内存。例如，像下面这样启动JVM将以256 MB的内存启动它，并允许进程使用高达2048 MB的内存：
+
+-Xmn2g：设置年轻代大小为2G。整个JVM内存大小=年轻代大小 + 年老代大小 + 持久代大小。持久代一般固定大小为64m，所以增大年轻代后，将会减小年老代大小。此值对系统性能影响较大，Sun官方推荐配置为整个堆的3/8。
+-Xss128k：设置每个线程的堆栈大小。JDK5.0以后每个线程堆栈大小为1M，以前每个线程堆栈大小为256K。更具应用的线程所需内存大小进行调整。在相同物理内存下，减小这个值能生成更多的线程。但是操作系统对一个进程内的线程数还是有限制的，不能无限生成，经验值在3000~5000左右。
+
+堆设置
+-Xms:初始堆大小
+-Xmx:最大堆大小 可以以X
+-XX:NewSize=n:设置年轻代大小
+-XX:NewRatio=n:设置年轻代和年老代的比值。如:为3，表示年轻代与年老代比值为1：3，年轻代占整个年轻代年老代和的1/4
+-XX:SurvivorRatio=n:年轻代中Eden区与两个Survivor区的比值。注意Survivor区有两个。如：3，表示Eden：Survivor=3：2，一个Survivor区占整个年轻代的1/5
+-XX:MaxPermSize=n:设置持久代大小
+收集器设置
+-XX:+UseSerialGC:设置串行收集器
+-XX:+UseParallelGC:设置并行收集器
+-XX:+UseParalledlOldGC:设置并行年老代收集器
+-XX:+UseConcMarkSweepGC:设置并发收集器
+垃圾回收统计信息
+-XX:+PrintGC
+-XX:+PrintGCDetails
+-XX:+PrintGCTimeStamps
+-Xloggc:filename
+并行收集器设置
+-XX:ParallelGCThreads=n:设置并行收集器收集时使用的CPU数。并行收集线程数。
+-XX:MaxGCPauseMillis=n:设置并行收集最大暂停时间
+-XX:GCTimeRatio=n:设置垃圾回收时间占程序运行时间的百分比。公式为1/(1+n)
+并发收集器设置
+-XX:+CMSIncrementalMode:设置为增量模式。适用于单CPU情况。
+-XX:ParallelGCThreads=n:设置并发收集器年轻代收集方式为并行收集时，使用的CPU数。并行收集线程数。
+
+
+
+
+
 # JavaGC机制
 
 
@@ -208,6 +246,10 @@ JVM由于要执行GC而停止了应用程序的执行称之为Stop-the-World，�
 4.方法区中常量引用对象
 ```
 
+可以作为GCRoots的
+
+方法区中永久区对象，以及Thread中的虚拟机栈和native方法
+
 ##### 引用计数法
 
 ```
@@ -223,7 +265,23 @@ JVM由于要执行GC而停止了应用程序的执行称之为Stop-the-World，�
 
 ##### 引用
 
+​	符号引用和直接引用这是程序链接时候的概念
+
+​	强引用 就是实例，只要还在用 就不会被收回
+
+​	软引用 还有用，但非必须 只能存活到溢出的时候，会被强制回收掉
+
+​	弱引用 比如ThreadLocal变量
+
+​	虚引用 无法通过虚引用获得一个对象实例，为一个对象设置虚引用关联的唯一目的就是在这个对象被垃圾
+
+​	收集器回收之前收到一个通知
+
+
+
 ​	再谈引用，在JDK 1.2之后，Java 对引用的概念进行了扩充，**将引用分为强引用( Strong Reference )、软引用(Soft Reference)、弱引用( Weak Reference)、虚引用( Phantom Reference )**四种，这四种引用强度依次逐渐减弱。
+
+
 
 - 强引用，强引用就是在程序代码中普遍存在的，类似“Object obj = new Object()”这类的引用，只要强引用还在，垃圾收集器永远不会回收掉被引用的对象
 - 软引用，软引用是用来描述一些还有用但非必须的对象。**对于软引用关联着的对象，在系统将要发生内存溢出异常之前，将会把这些对象列进回收范围之中进行第二次回收**。如果这次回收还没有足够的内存，才会抛出内存溢出异常。
@@ -329,6 +387,8 @@ Full GC 新生代 老年代 都回收
 
 ##### 大对象直接进入老年代
 
+这样会提前触发full gc 造成长时间的stop the world
+
 ##### 长期存活对象直接进入老年代
 
 ​	虚拟机给每个对象定义了一个对象年龄计数器，如果对象在 Eden 出生并经历过第一次MinorGC后任仍然存活，并且能被Survivor容纳的话，就会被移动到Survivor空间。对象在Survivor空间中每经历过一次MinorGC，年龄就加一，当它年龄增加到一定程度（默认15岁），就会晋升到老年代。可以通过 -XX：MaxTenuringThreshold参数来修改默认年龄。
@@ -374,6 +434,72 @@ Full GC 新生代 老年代 都回收
 
 
 
+### CMS收集器
+
+并发标记清楚收集器
+
+​	CMS( Concurrent Mark Sweep )收集器是一种以获取最短回收停顿时间为目标的收集器。该收集器主要用于希望系统停顿时间短、频繁与用户交互的应用，如BS系统的服务端。
+
+**CMS收集器只能回收Old对象，需要一个回收年轻代的收集器配合使用**
+
+​	CMS是基于“标记——清除”算法实现。主要步骤如下：
+
+- 初始标记
+
+  需要“stop the world”，该步骤只是标记一下GC Roots能直接关联到的对象，速度很快。
+
+- 并发标记
+
+  进行GC Roots Tracing的过程。
+
+- 重新标记
+
+  需要“stop the world”，该阶段为了修正并发标记期间因为用户程序继续运作而导致标记产生变动的那一部分对象的标记记录。停顿时间比初始标记长一点，但远比并发标记时间短。
+
+  简记：为了修正并发标记期间变动的标记记录。
+
+- 并发清除
+
+  使用垃圾收集算法进行垃圾收集。
+
+​	由于整个过程中耗时最长的并发标记和并发清除过程都可以与用户进程一起工作，所以，从总体上来说，CMS收集器的内存回收过程是和用户线程一起并发执行的。
+
+MixedGC 也是并发清楚的一个过程 对于老年代来说
+
+​	整体流程如下：
+
+![](../assets/CMS.png)
+
+其缺点如下：
+
+- 对CPU资源非常敏感。在并发阶段，其虽然不会导致用户线程停顿，但会因为占用了一部分线程（或者说是CPU 资源）而导致程序变慢，总吞吐量会降低；
+- CMS收集器无法收集浮动垃圾（Floating Garbage）可能会出现“Concurrent Mode Failure”失败而导致另一次Full GC的产生。由于CMS并发清理阶段用户线程还在执行，伴随程序运行自然就还会有新的垃圾不断产生，这一部分垃圾出现在标记过程之后，CMS无法在当次收集中处理掉它们，只好等待下一次GC再收集它们，这一部分垃圾就称为“浮动垃圾”；
+- CMS是基于标记——清除算法，每次收集结束后会有大量空间碎片产生，会给大对象分配带来很大麻烦。往往会出现老年代还有很大空间剩余，但是无法找到足够大的连续空间来分配当前对象，不得不提前触发一次Full GC。
+
+##### 补充：自己的体悟：CMS是一个老年代的收集器
+
+### CMS和G1的区别：
+
+##### 分代收集
+
+G1可以回收年轻代老年代，CMS只适合回收老年代
+
+但是单论老年代回收算法，其实两者过程都差不多的，都是要经过起始标记，并发标记，最终标记，垃圾清除这四个步骤
+
+##### 如何处理跨代引用
+
+年轻代引用老年代没什么问题，老年代引用年轻代在收集的时候就会影响young gc 处理方法是 用一个叫card的数据结构，有点像我们内存中的分页，来记录这些引用，并在标记收集的时候避开拥有记录的
+
+G1更是拓展用了一个remeber set来做
+
+##### 如何处理并发过程的对象化
+
+##### Write Barrier
+
+##### FullGC
+
+
+
 ### G1收集器
 
 1. 引入
@@ -400,6 +526,8 @@ Full GC 新生代 老年代 都回收
 - 元空间：1.8之后的metaspace
 
 ​	这些space必须是地址连续的空间。
+
+**在G1算法中，采用了另外一种完全不同的方式组织内存，堆内存被划分成多个大小相等的内存块，所以不同的分代从CMS的连续内存空间，到这里成为了逻辑上的分代**
 
 ​	在G1算法中，采用了另外一种完全不同的方式组织堆内存，堆内存被划分为多个大小相等的内存块（Region），每个Region是逻辑连续的一段内存，结构如下：
 
@@ -450,6 +578,8 @@ Full GC 新生代 老年代 都回收
 
   mixed gc的执行过程有点类似cms，主要分为以下几个步骤：
 
+  **标记的详细过程：**
+
   1. initial mark: 初始标记过程，整个过程Stop The World，标记了从GC Root可达的对象
   2. concurrent marking: 并发标记过程，整个过程gc collector线程与应用线程可以并行执行，标记出GC Root可达对象衍生出去的存活对象，并收集各个Region的存活对象信息
   3. remark: 最终标记过程，整个过程Stop The World，标记出那些在并发标记过程中遗漏的，或者内部引用发生变化的对象
@@ -458,6 +588,8 @@ Full GC 新生代 老年代 都回收
 - full gc
 
   如果对象内存分配速度过快，mixed gc来不及回收，导致老年代被填满，就会触发一次full gc，G1的full gc算法就是单线程执行的serial old gc，会导致异常长时间的暂停时间，需要进行不断的调优，尽可能的避免full gc.
+
+**只要并行收集，就没办法处理浮动垃圾**
 
 
 
@@ -475,7 +607,43 @@ Full GC 新生代 老年代 都回收
 
 虚拟机可以对满足上述3个条件的无用类进行回收，此处仅仅是“可以”，而并不是和对象一样（不使用了就必然回收）
 
+### 补充：触发Full GC的情况
 
+##### System.gc()方法的调用
+
+一种是System.gc()方法的调用，这是一种程序员对GC器的建议，并不是一定执行的，增加Full GC的频率 就会导致Stop-the-World的频繁，和时间变长
+
+##### 老年代空间满了
+
+老年代空间只有在新生代对象转入及创建为大对象、大数组时才会出现不足的现象，当执行Full GC后空间仍然不足，则抛出如下错误：
+java.lang.OutOfMemoryError: Java heap space 
+
+为避免以上两种状况引起的Full GC，调优时应尽量做到让对象在Minor GC阶段被回收、让对象在新生代多存活一段时间及不要创建过大的对象及数组。
+
+##### 永生代空间满了
+
+JVM规范中运行时数据区域中的方法区，在HotSpot虚拟机中又被习惯称为永生代或者永生区，Permanet Generation中存放的为一些class的信息、常量、静态变量等数据，当系统中要加载的类、反射的类和调用的方法较多时，Permanet Generation可能会被占满，在未配置为采用CMS GC的情况下也会执行Full GC。如果经过Full GC仍然回收不了，那么JVM会抛出如下错误信息：
+java.lang.OutOfMemoryError: PermGen space 
+
+为避免Perm Gen占满造成Full GC现象，可采用的方法为增大Perm Gen空间或转为使用CMS GC。
+
+
+
+
+
+##### 补充一下CMS，对不同的分代用不同的收集算法，甚至是不同的收集器
+
+CMS全称 `Concurrent Mark Sweep`，是一款并发的、使用标记-清除算法的垃圾回收器，
+如果老年代使用CMS垃圾回收器，需要添加虚拟机参数-”XX:+UseConcMarkSweepGC”。
+
+#### 使用场景：
+
+GC过程短暂停，适合对时延要求较高的服务，用户线程不允许长时间的停顿。
+
+#### 缺点：
+
+服务长时间运行，造成严重的内存碎片化。
+另外，算法实现比较复杂（如果也算缺点的话）
 
 # 类加载机制
 
@@ -531,7 +699,7 @@ ClassLoader是天然线程安全的
 
 
 
-### 关于自定义类加载器
+### 补充：关于自定义类加载器
 
 ```
 加密：java代码可以轻易的被反编译，如果你需要对你的代码进行加密以防止反编译，可以先将编译后的代码用加密算法加密，类加密后就不能再使用自带的类加载器了，编译->加载(类加载器，将一个类从二进制字节流读入JVM内部，并存储在运行时内存区的方法区里->然后将其转换为一个与目标类型对应的java.lang.class对象实例
@@ -541,7 +709,7 @@ ClassLoader是天然线程安全的
 
 1、如果不想打破双亲委派模型，那么只需要重写findClass方法即可
 
-父加载器开始尝试加载.class文件，加载成功就返回一个java.lang.Class，加载不成功就抛出一个ClassNotFoundException，给子加载器去加载，
+父加载器开始尝试加载.class文件，加载成功就返回一个java.lang.Class，加载不成功就抛出一个ClassNotFoundException，给子加载器去加载，//返回一个Class对象，就是加载过程，已经有了class对象了
 
 其实向上检查的时候，如果父类已经加载过，就会返回一个引用
 
@@ -553,7 +721,391 @@ loadClass，界定了双亲委派模型的方法
 
 
 
+### 简介
+
+​	所有的Class都是由ClassLoader进行加载的，ClassLoader负责将Class文件里的二进制数据流**加载**进系统，然后交给java虚拟机进行**连接**、**初始化**等操作。
+
+### 类的生命周期
+
+​	**加载，验证，准备，解析，初始化，使用和卸载。其中验证，准备，解析3个部分统称为连接**。这7个阶段发生顺序如下图：
+
+![](../assets/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E7%9A%84%E4%B8%83%E4%B8%AA%E9%98%B6%E6%AE%B5.png)
+
+​	加载，验证，准备，初始化，卸载这5个阶段的顺序是确定的，而解析阶段则不一定：它在某些情况下可以在初始化完成后在开始，这是为了支持Java语言的运行时绑定。
+
+​	**其中加载，验证，准备，解析及初始化是属于类加载机制中的步骤。注意此处的加载不等同于类加载。**
+
+### 类加载的具体过程
+
+1. 加载
+
+   (1) 通过一个类的全限定名来获取定义此类的二进制流；
+
+   (2) 将这个字节流所代表的静态存储结构转换为方法区的运行时数据结构；
+
+   (3) 在内存中生成一个代表这个类的java.lang.Class对象，作为方法区这个类的各种数据的访问入口。
+
+2. 验证
+
+   **是连接阶段的第一步，目的是为了确保Class文件的字节流中包含的信息符合当前虚拟机的要求，并且不会危害虚拟机自身的安全。**
+
+   包含四个阶段的校验动作：
+
+   - 文件格式验证：验证字节流是否符合Class文件格式的规范，并且能被当前版本的虚拟机处理。
+   - 元数据验证：对类的元数据信息进行语义校验，是否不存在不符合Java语言规范的元数据信息。
+   - 字节码验证：最复杂的一个阶段，主要目的是通过数据流和控制流分析，确定程序语义是合法的，符合逻辑的。对类的方法体进行校验分析，保证被校验类的方法在运行时不会做出危害虚拟机安全的事件。
+   - 符号引用验证：最后一个阶段的校验发生在虚拟机将符号引用转换为直接引用的时候，这个转换动作将在连接的第三个阶段——解析阶段中发生。符号验证的目的是确保解析动作能正常进行。
+
+3. 准备
+
+   **准备阶段是正式为类变量分配内存并设置类变量初始值的阶段**。这些变量所使用的内存都将在方法区中分配。只包括类变量。初始值“通常情况”下是数据类型的零值。“特殊情况”下，如果类字段的字段属性表中存在Constant Value属性，那么在准备阶段变量的值就会被初始化为Constant Value属性所指定的值。
+
+4. 解析
+
+   **虚拟机将常量池内的符号引用替换为直接引用的过程。**“动态解析”的含义就是必须等到程序实际运行到这条指令的时候，解析动作才能进行。相对的，其余可触发解析的指令都是“静态”的，可以在刚刚完成加载阶段，还没有开始执行代码时就进行解析。
+
+   关于解析阶段，符号引用转为直接引用的说明：
+
+   - 符号引用（Symbolic References）：符号引用以一组符号来描述所引用的目标，符号可以是任何形式的字面量，只要使用时能够无歧义的定位到目标即可。例如，在Class文件中它以CONSTANT_Class_info、CONSTANT_Fieldref_info、CONSTANT_Methodref_info等类型的常量出现。
+
+     符号引用与虚拟机的内存布局无关，引用的目标并不一定加载到内存中。在Java中，一个java类将会编译成一个class文件。在编译时，java类并不知道所引用的类的实际地址，因此只能使用符号引用来代替。比如org.simple.People类引用了org.simple.Language类，在编译时People类并不知道Language类的实际内存地址，因此只能使用符号org.simple.Language（假设是这个，当然实际中是由类似于CONSTANT_Class_info的常量来表示的）来表示Language类的地址。各种虚拟机实现的内存布局可能有所不同，但是它们能接受的符号引用都是一致的，因为符号引用的字面量形式明确定义在Java虚拟机规范的Class文件格式中。
+
+   - 直接引用：直接引用可以是
+
+     - 直接指向目标的指针（比如，指向“类型”【Class对象】、类变量、类方法的直接引用可能是指向方法区的指针），该方法为hotSpot中的实现。
+
+       具体如下图所示：
+
+       ![](../assets/%E9%80%9A%E8%BF%87%E7%9B%B4%E6%8E%A5%E6%8C%87%E9%92%88%E8%AE%BF%E9%97%AE%E5%AF%B9%E8%B1%A1.png)
+
+     - 相对偏移量（比如，指向实例变量、实例方法的直接引用都是偏移量）
+
+     - 一个能间接定位到目标的句柄
+
+       具体如下图所示：
+
+       ![](../assets/%E9%80%9A%E8%BF%87%E5%8F%A5%E6%9F%84%E8%AE%BF%E9%97%AE%E5%85%B7%E4%BD%93%E5%AF%B9%E8%B1%A1.png)
+
+     直接引用是和虚拟机的布局相关的，同一个符号引用在不同的虚拟机实例上翻译出来的直接引用一般不会相同。如果有了直接引用，那引用的目标必定已经被加载入内存中了。
+
+   
+
+5. 初始化
+
+   初始化结点，是执行静态代码块，前面都是对类的装载，和bean 通过bean名拿到bean的配置一样
+
+   类加载过程中的最后一步。**简单地说，初始化就是对类变量进行赋值及执行静态代码块。**
+
+   初始化阶段是执行类构造器<clinit>()方法的过程。
+
+   <clinit>()方法是由编译器自动收集类中的**所有类变量的赋值动作和静态语句块中的语句合并产生的**。
+
+   <clinit>()与类的构造函数不同，它不需要显示地调用父类构造器，虚拟机会保证在子类的<clinit>()方法执行之前，父类的<clinit>()方法已经执行完毕。
+
+##### 注意一点：
+
+​	类在加载阶段，方法区里就有类对象了，会创建该class的对象，作为方法区访问这个类数据的入口
+
+​	在类准备阶段，就会对类变量分配内存并且赋给初始值了，并且初始化的时候 从静态代码块开始执行对类变量进行赋值，所以准备阶段已经分配过内存了，对象类型数据，而对象实例数据会在堆中分配，比如该类的某属性是什么类型的在方法区中就要记录一下
+
+
+
+### 触发类加载的条件
+
+1. **遇到new,getstatic,putstatic或invokestatic这4条字节码指令时**，如果类没有进行过初始化，则需要先触发初始化。生成这4条指令的最常见的Java代码场景是：
+   - 使用new关键字实例化对象的时候；
+   - 读取或设置一个类的静态字段的时候（被final修饰，已在编译期把结果放入常量池的静态字段除外）；
+   - 调用一个类的静态方法的时候。
+2. 使用java.lang.reflect包的方法对类进行反射调用的时候。
+3. 当初始化一个类的时候，发现其父类还没有进行过初始化，则需要先出发父类的初始化。
+4. 当虚拟机启动时，用户需要指定一个要执行的主类（包含main()方法的那个类），虚拟机会先初始化这个主类。
+5. 当使用JDK1.7的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后的解析结果REF_getStatic,REF_putStatic,REF_invokeStatic的方法句柄，并且这个方法句柄所对应的类没有进行初始化，则需要先出发初始化。
+
+### 类加载器
+
+​	通过上述的了解，我们已经知道了类加载机制的大概流程及各个部分的功能。其中加载部分的功能是将类的class文件读入内存，并为之创建一个java.lang.Class对象。这部分功能就是由类加载器来实现的。
+
+##### 类加载器分类
+
+不同的类加载器负责加载不同的类。主要分为两类：
+
+- **启动类加载器（Bootstrap ClassLoader）：**由C++语言实现（针对HotSpot）,负责将存放在<JAVA_HOME>\lib目录或-Xbootclasspath参数指定的路径中的类库加载到内存中，即负责加载Java的核心类，即核心库java.*。
+- **其他类加载器：**由Java语言实现，继承自抽象类ClassLoader。如：
+  - **扩展类加载器（Extension ClassLoader）：**负责加载<JAVA_HOME>\lib\ext目录或java.ext.dirs系统变量指定的路径中的所有类库，即负责加载扩展库javax.*。
+  - **应用程序类加载器（Application ClassLoader）：**负责加载用户类路径（classpath）上的指定类库，我们可以直接使用这个类加载器，通过ClassLoader.getSystemClassLoader()方法直接获取。一般情况，如果我们没有自定义类加载器默认就是用这个加载器。
+
+​	以上2大类，3小类类加载器基本上负责了所有Java类的加载。下面我们来具体了解上述几个类加载器实现类加载过程时相互配合协作的流程。
+
+##### 双亲委派模型
+
+1. 工作流程
+
+   **双亲委派模型的工作流程是：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把请求委托给父加载器去完成，依次向上，因此，所有的类加载请求最终都应该被传递到顶层的启动类加载器中，只有当父加载器在它的搜索范围中没有找到所需的类时，即无法完成该加载，子加载器才会尝试自己去加载该类。**
+
+   ![](../assets/%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B.png)
+
+   ​	具体对应的加载内容如下：
+
+   ![](../assets/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B.png)
+
+   ​	这样的**好处**是不同层次的类加载器具有不同优先级，比如所有Java对象的超级父类java.lang.Object，位于rt.jar，无论哪个类加载器加载该类，最终都是由启动类加载器进行加载，保证安全。即使用户自己编写一个java.lang.Object类并放入程序中，虽能正常编译，但不会被加载运行，保证不会出现混乱。
+
+   双亲委派模型
+
+2. 代码实现
+
+   ClassLoader中loadClass方法实现了双亲委派模型：
+
+   ```java
+   protected Class<?> loadClass(String name, boolean resolve)
+       throws ClassNotFoundException
+   {
+       synchronized (getClassLoadingLock(name)) {
+           //检查该类是否已经加载过
+           Class c = findLoadedClass(name);
+           if (c == null) {
+               //如果该类没有加载，则进入该分支
+               long t0 = System.nanoTime();
+               try {
+                   if (parent != null) {
+                       //当父类的加载器不为空，则通过父类的loadClass来加载该类
+                       c = parent.loadClass(name, false);
+                   } else {
+                       //当父类的加载器为空，则调用启动类加载器来加载该类
+                       c = findBootstrapClassOrNull(name);
+                   }
+               } catch (ClassNotFoundException e) {
+                   //非空父类的类加载器无法找到相应的类，则抛出异常
+               }
+   
+               if (c == null) {
+               //向上寻找是否被加载
+               //向下逐层加载
+                   //当父类加载器无法加载时，则调用findClass方法来加载该类
+                   long t1 = System.nanoTime();
+                   c = findClass(name); //用户可通过覆写该方法，来自定义类加载器
+   
+                   //用于统计类加载器相关的信息
+                   sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                   sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                   sun.misc.PerfCounter.getFindClasses().increment();
+               }
+           }
+           if (resolve) {
+               //对类进行link操作
+               resolveClass(c);
+           }
+           return c;
+       }
+   }
+   ```
+
+   代码对应的流程如下：
+
+   - 首先，检查一下指定名称的类是否已经加载过，如果加载过了，就不需要再加载，直接返回。
+   - 如果此类没有加载过，那么，再判断一下是否有父加载器；如果有父加载器，则由父加载器加载（即调用parent.loadClass(name, false);）.或者是调用bootstrap类加载器来加载。
+   - 如果父加载器及bootstrap类加载器都没有找到指定的类，那么调用当前类加载器的findClass方法来完成类加载。
+
+3. 破坏双亲委派模型
+
+   双亲委任模型不是一个强制性的约束模型，而是一个建议型的类加载器实现方式。在Java的世界中大部分的类加载器都遵循者模型，但也有例外，到目前为止，双亲委派模型有过3次大规模的“被破坏”的情况。 
+
+   - **第一次**：在双亲委派模型出现之前—–即JDK1.2发布之前；
+
+   - **第二次**：是这个模型自身的缺陷导致的。我们说，双亲委派模型很好的解决了各个类加载器的基础类的统一问题（越基础的类由越上层的加载器进行加载），基础类之所以称为“基础”，是因为它们总是作为被用户代码调用的API， 但没有绝对，**如果基础类调用会用户的代码**怎么办呢？
+
+     ​	这不是没有可能的。一个典型的例子就是JNDI服务，JNDI现在已经是Java的标准服务，它的代码由启动类加载器去加载（在JDK1.3时就放进去的rt.jar）,但它需要调用由独立厂商实现并部署在应用程序的ClassPath下的JNDI接口提供者（SPI， Service Provider Interface）的代码，但启动类加载器不可能“认识“这些代码啊。因为这些类不在rt.jar中，但是启动类加载器又需要加载。怎么办呢？
+
+     ​	为了解决这个问题，Java设计团队只好引入了一个不太优雅的设计：线程上下文类加载器（Thread Context ClassLoader）。这个类加载器可以通过java.lang.Thread类的setContextClassLoader方法进行设置。如果创建线程时还未设置，它将会从父线程中继承一个，如果在应用程序的全局范围内都没有设置过多的话，那这个类加载器默认即使应用程序类加载器。
+
+     ​	有了线程上下文加载器，JNDI服务使用这个线程上下文加载器去加载所需要的SPI代码，也就是父类加载器请求子类加载器去完成类加载的动作，这种行为实际上就是打通了双亲委派模型的层次结构来逆向使用类加载器，实际上已经违背了双亲委派模型的一般性原则。但这无可奈何，Java中所有涉及SPI的加载动作基本胜都采用这种方式。例如JNDI，JDBC，JCE，JAXB，JBI等。
+
+   - **第三次**：为了实现热插拔，热部署，模块化，意思是添加一个功能或减去一个功能不用重启，只需要把这模块连同类加载器一起换掉就实现了代码的热替换（tomcat中的jsp改动就是一个很典型的例子）。
+
+<hr>
+
+##### jdbc 破坏双亲委派模型
+
+​	首先，理解一下为什么JDBC需要破坏双亲委派模式，原因是原生的JDBC中Driver驱动本身只是一个接口，并没有具体的实现，具体的实现是由不同数据库类型去实现的。例如，其中一种实现就是MySQL的mysql-connector-.jar中的Driver类来具体实现。
+
+​	原生的JDBC中的类是放在rt.jar包的，是由**启动类加载器**进行类加载的，在JDBC中的Driver类中需要动态去加载不同数据库类型的Driver类，而mysql-connector-.jar中的Driver类是用户自己写的代码，那启动类加载器肯定是不能进行加载的，既然是自己编写的代码，那就需要由**应用程序类加载器**去进行类加载。于是乎，这个时候就引入线程上下文件类加载器(Thread Context ClassLoader)。**有了这个东西之后，程序就可以把原本需要由启动类加载器进行加载的类，由应用程序类加载器去进行加载了。**
+
+​	下面看看JDBC中是怎么去应用：
+
+```java
+private static Connection getConnection(
+        String url, java.util.Properties info, Class<?> caller) throws SQLException {
+        /*
+         * When callerCl is null, we should check the application's
+         * (which is invoking this class indirectly)
+         * classloader, so that the JDBC driver class outside rt.jar
+         * can be loaded from here.
+         */
+        //callerCL为空的时候，其实说明这个ClassLoader是启动类加载器，但是这个启动类加载并不能识别rt.jar之外的类，这个时候就把callerCL赋值为Thread.currentThread().getContextClassLoader();也就是应用程序启动类
+        ClassLoader callerCL = caller != null ? caller.getClassLoader() : null;
+        synchronized(DriverManager.class) {
+            // synchronize loading of the correct classloader.
+            if (callerCL == null) {
+                callerCL = Thread.currentThread().getContextClassLoader();
+            }
+        }
+
+        if(url == null) {
+            throw new SQLException("The url cannot be null", "08001");
+        }
+
+        println("DriverManager.getConnection(\"" + url + "\")");
+
+        // Walk through the loaded registeredDrivers attempting to make a connection.
+        // Remember the first exception that gets raised so we can reraise it.
+        SQLException reason = null;
+
+        for(DriverInfo aDriver : registeredDrivers) {
+            // If the caller does not have permission to load the driver then
+            // skip it.
+            //继续看这里 
+            if(isDriverAllowed(aDriver.driver, callerCL)) {
+                try {
+                    println("    trying " + aDriver.driver.getClass().getName());
+                    Connection con = aDriver.driver.connect(url, info);
+                    if (con != null) {
+                        // Success!
+                        println("getConnection returning " + aDriver.driver.getClass().getName());
+                        return (con);
+                    }
+                } catch (SQLException ex) {
+                    if (reason == null) {
+                        reason = ex;
+                    }
+                }
+
+            } else {
+                println("    skipping: " + aDriver.getClass().getName());
+            }
+
+        }
+
+        // if we got here nobody could connect.
+        if (reason != null)    {
+            println("getConnection failed: " + reason);
+            throw reason;
+        }
+
+        println("getConnection: no suitable driver found for "+ url);
+        throw new SQLException("No suitable driver found for "+ url, "08001");
+    }
+
+    private static boolean isDriverAllowed(Driver driver, ClassLoader classLoader) {
+        boolean result = false;
+        if(driver != null) {
+            Class<?> aClass = null;
+            try {
+                //这一步会对类进行初始化的动作，而初始化之前自然也要进行的类的加载工作
+                aClass =  Class.forName(driver.getClass().getName(), true, classLoader);
+            } catch (Exception ex) {
+                result = false;
+            }
+
+             result = ( aClass == driver.getClass() ) ? true : false;
+        }
+
+        return result;
+    }
+```
+
+##### Tomcat破坏双亲委派模型
+
+1. **Tomcat 如果使用默认的类加载机制行不行？**
+
+   我们思考一下：Tomcat是个web容器， 那么它要解决什么问题： 
+
+   - 一个web容器可能需要部署两个应用程序，不同的应用程序可能会依赖同一个第三方类库的不同版本，不能要求同一个类库在同一个服务器只有一份，因此要保证每个应用程序的类库都是独立的，保证相互隔离。 
+   - 部署在同一个web容器中相同的类库相同的版本可以共享。否则，如果服务器有10个应用程序，那么要有10份相同的类库加载进虚拟机，这是扯淡的。 
+   - web容器也有自己依赖的类库，不能于应用程序的类库混淆。基于安全考虑，应该让容器的类库和程序的类库隔离开来。 
+   - web容器要支持jsp的修改，我们知道，jsp 文件最终也是要编译成class文件才能在虚拟机中运行，但程序运行后修改jsp已经是司空见惯的事情，否则要你何用？ 所以，web容器需要支持 jsp 修改后不用重启。
+
+   再看看我们的问题：Tomcat 如果使用默认的类加载机制行不行？ 
+
+   答案是不行的。为什么？我们看，第一个问题，如果使用默认的类加载器机制，那么是无法加载两个相同类库的不同版本的，默认的类加载器是不管你是什么版本的，只在乎你的全限定类名，并且只有一份。第二个问题，默认的类加载器是能够实现的，因为他的职责就是保证唯一性。第三个问题和第一个问题一样。我们再看第四个问题，我们想我们要怎么实现jsp文件的热修改（楼主起的名字），jsp 文件其实也就是class文件，那么如果修改了，但类名还是一样，类加载器会直接取方法区中已经存在的，修改后的jsp是不会重新加载的。那么怎么办呢？我们可以直接卸载掉这jsp文件的类加载器，所以你应该想到了，每个jsp文件对应一个唯一的类加载器，当一个jsp文件修改了，就直接卸载这个jsp类加载器。重新创建类加载器，重新加载jsp文件。
+
+2. **Tomcat 如何实现自己独特的类加载机制？**
+
+   所以，Tomcat 是怎么实现的呢？牛逼的Tomcat团队已经设计好了。我们看看他们的设计图：
+
+   ![](/Users/mrjiao/Documents/typora/java/assets/tomcat%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E7%A4%BA%E6%84%8F%E5%9B%BE.png)
+
+   我们看到，前面3个类加载和默认的一致，CommonClassLoader、CatalinaClassLoader、SharedClassLoader和WebappClassLoader则是Tomcat自己定义的类加载器，它们分别加载/common/、/server/、/shared/（在tomcat 6之后已经合并到根目录下的lib目录下）和/WebApp/WEB-INF/中的Java类库。
+
+   其中WebApp类加载器和Jsp类加载器通常会存在多个实例，**每一个Web应用程序对应一个WebApp类加载器，每一个JSP文件对应一个Jsp类加载器**。
+
+   - commonLoader：Tomcat最基本的类加载器，加载路径中的class可以被Tomcat容器本身以及各个Webapp访问；
+   - catalinaLoader：Tomcat容器私有的类加载器，加载路径中的class对于Webapp不可见
+   - sharedLoader：各个Webapp共享的类加载器，加载路径中的class对于所有Webapp可见，但是对于Tomcat容器不可见；
+   - WebappClassLoader：各个Webapp私有的类加载器，加载路径中的class只对当前Webapp可见；
+
+   从图中的委派关系中可以看出：
+
+   - CommonClassLoader能加载的类都可以被Catalina ClassLoader和SharedClassLoader使用，从而实现了公有类库的共用，而CatalinaClassLoader和Shared ClassLoader自己能加载的类则与对方相互隔离。
+   - WebAppClassLoader可以使用SharedClassLoader加载到的类，但各个WebAppClassLoader实例之间相互隔离。
+   - JasperLoader的加载范围仅仅是这个JSP文件所编译出来的那一个.Class文件，它出现的目的就是为了被丢弃：当Web容器检测到JSP文件被修改时，会替换掉目前的JasperLoader的实例，并通过再建立一个新的Jsp类加载器来实现JSP文件的HotSwap功能。
+
+   好了，至此，我们已经知道了tomcat为什么要这么设计，以及是如何设计的，那么，tomcat 违背了java 推荐的双亲委派模型了吗？答案是：违背了。 我们前面说过：
+
+   **双亲委派模型要求除了顶层的启动类加载器之外，其余的类加载器都应当由自己的父类加载器加载。**
+
+   很显然，tomcat 不是这样实现，tomcat 为了实现隔离性，没有遵守这个约定，每个webappClassLoader加载自己的目录下的class文件，不会传递给父类加载器。
+
+3. **如果tomcat 的 Common ClassLoader 想加载 WebApp ClassLoader 中的类，该怎么办？**
+
+   看了前面的关于破坏双亲委派模型的内容，我们心里有数了，我们可以使用线程上下文类加载器实现，使用线程上下文加载器，可以让父类加载器请求子类加载器去完成类加载的动作。
+
+
+
 # JVM调优
+
+JVM调优 其实我看就是 对xmn 
+
+Java -Xms<size> 初始Java堆的大小
+
+Java -Xmx<size> 最大Java堆的大小
+
+Java -Xss<size> Java线程堆栈大小
+
+### **年轻代大小选择**
+
+##### 响应时间优先的应用：
+
+##### 吞吐量优先的应用：
+
+响应时间优先的应用：尽可能设大，直到接近系统的最低响应时间限制（根据实际情况选择）。在此种情况下，年轻代收集发生的频率也是最小的。同时，减少到达年老代的对象。
+吞吐量优先的应用：尽可能的设置大，可能到达Gbit的程度。因为对响应时间没有要求，
+
+垃圾收集可以并行进行，一般适合8CPU以上的应用。
+
+### **年老代大小选择**
+
+响应时间优先的应用：年老代使用并发收集器，所以其大小需要小心设置，一般要考虑并发会话率和会话持续时间等一些参数。如果堆设置小了，可以会造成内存碎片、高回收频率以及应用暂停而使用传统的标记清除方式；如果堆大了，则需要较长的收集时间。最优化的方案，一般需要参考以下数据获得：
+
+- 并发垃圾收集信息
+- 持久代并发收集次数
+- 传统GC信息
+- 花在年轻代和年老代回收上的时间比例
+- 减少年轻代和年老代花费的时间，一般会提高应用的效率
+- 吞吐量优先的应用：一般吞吐量优先的应用都有一个很大的年轻代和一个较小的年老代。原因是，这样可以尽可能回收掉大部分短期对象，减少中期的对象，而年老代尽存放长期存活对象。
+
+
+
+### **较小堆引起的碎片问题**
+
+因为年老代的并发收集器使用标记、清除算法，所以不会对堆进行压缩。当收集器回收时，他会把相邻的空间进行合并，这样可以分配给较大的对象。但是，当堆空间较小时，运行一段时间以后，就会出现“碎片”，如果并发收集器找不到足够的空间，那么并发收集器将会停止，然后使用传统的标记、清除方式进行回收。如果出现“碎片”，可能需要进行如下配置：
+-XX:+UseCMSCompactAtFullCollection：使用并发收集器时，开启对年老代的压缩。
+-XX:CMSFullGCsBeforeCompaction=0：上面配置开启的情况下，这里设置多少次Full GC后，对年老代进行压缩
+
+##### 补充：如何避免FullGC？
+
+对与G1收集器 内存分配过快，mixedGC来不及回收，就会导致对象年龄增加 进入老年代，如果老年代
+
+### 补充：两种错误类型如何解决
 
 ### StackOverFlow
 
