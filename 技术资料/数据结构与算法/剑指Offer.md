@@ -1934,6 +1934,63 @@ list=temp;//偶数结点有指向奇数结点的指针就不好了，不如拆�
 
 
 
+### 62.前缀树Trie-树
+
+```java
+TreeNode{
+
+char val;
+
+boolean isWord;
+
+HashMap<Character,TreeNode> hashMap;
+
+public TreeNode(char val){
+
+this.hashMap = new HashMap<>();
+
+isWord=false;
+
+this.val =val;
+
+}
+
+}
+
+public void createTree(String str){
+
+char [] array=str.toCharArray();
+
+TreeNode newNode = new TreeNode(array[i]);
+
+for(int i=0;i<array.length-1;i++){
+
+if(i+1==array.length-1){
+
+newNode.isWord=true;
+
+break;
+
+}
+
+if(newNode.hashMap.containsKey(array[i+1])){
+
+newNode =newNode.hashMap.get(array[i+1]);
+
+}else{
+
+newNode.hashMap.put(array[i],new TreeNode(array[i]));
+
+}
+
+}
+
+}
+
+```
+
+
+
 # 海量数据类题目
 
 <http://www.sohu.com/a/278216703_652662>

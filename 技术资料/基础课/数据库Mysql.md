@@ -32,11 +32,23 @@ REDIS
 ##### Redis部分：
 
 - 使用场景，各个数据结构常用的场景
+
 - 与memocache的区别
+
+  memocache没有丰富的数据结构
+
+  memocache不支持磁盘永久化操作，无论是同步的save还是异步的bgsave，异步操作无需等待
+
+  memocache不支持主从同步，也就无法保证系统的高可用和形成集群
+
 - 字典和跳跃表 ✅
+
 - RDB和AOF持久化机制，RDB就是个快照，AOF好像是命令缓存？
+
 - 集群与分布式 分布式id生成器，其实因为Redis是单线程，但是有可能有进程调度问题
+
 - 事务
+
 - 线程安全问题
 
 ### 基本概念整理： 主属性 主键 超键 候选键等
@@ -842,6 +854,10 @@ MVCC使得大部分支持行锁的事务引擎，不再单纯的使用行锁来�
   
 
 ![FDEB7C3F-CC03-4D9B-94CC-36CEDB41D4E6](/Users/Haoyu/Documents/Notes-For-Interviews/技术资料/assets/FDEB7C3F-CC03-4D9B-94CC-36CEDB41D4E6.png)
+
+
+
+undo log 还没有提交事务的缓存
 
 
 

@@ -392,6 +392,7 @@ public V put(K key, V value) {
     }
  
     modCount++;
+  	//这里modcount是为迭代器准备的，因为迭代器迭代过程中不准许修改，如果修改就会报错
     // 4. 不存在重复的 key，将此 entry 添加到链表中，细节后面说
     addEntry(hash, key, value, i);
     return null;
@@ -845,6 +846,8 @@ public V put(K key, V value) {
 
 Segment 内部是由 数组+链表 组成的。
 
+Segment内部是由数组+链表组成的
+
 ```java
 final V put(K key, int hash, V value, boolean onlyIfAbsent) {
     // 在往该 segment 写入前，需要先获取该 segment 的独占锁
@@ -909,18 +912,14 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
 
 整体流程还是比较简单的，由于有独占锁的保护，所以 segment 内部的操作并不复杂。至于这里面的并发问题，我们稍后再进行介绍。
 
+Segment中用了独占锁进行保护，并用finally最终释放锁
+
 到这里 put 操作就结束了，接下来，我们说一说其中几步关键的操作。
 
 ##### Put操作总结
 
 - 初始化槽：ensureSegment，插入第一个值的时候对这个锁段进行初始化，用CAS进行并发控制，在初始化对象的时候，因为这个时候Segment才初始化，所以没有对象锁可以获取，用类锁又效率太低，不如CAS
 - 获得写入锁scanAndLockForPut，首先会调用 node = tryLock() ? null : scanAndLockForPut(key, hash, value)，也就是说先进行一次 tryLock() 快速获取该 segment 的独占锁，如果失败，那么进入到 scanAndLockForPut 这个方法来获取锁。
-
-
-
-
-
-
 
 - 初始化槽: ensureSegment
 
@@ -949,6 +948,7 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
    
               Segment<K,V> s = new Segment<K,V>(lf, threshold, tab);
               // 使用 while 循环，内部用 CAS，当前线程成功设值或其他线程成功设值后，退出
+             //每一个线程内部对于单例来说是用双检锁的，但是这里用了cas的方法来对锁进行初始化
               while ((seg = (Segment<K,V>)UNSAFE.getObjectVolatile(ss, u))
                      == null) {
                   if (UNSAFE.compareAndSwapObject(ss, u, null, seg = s))
@@ -967,6 +967,8 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
   这才是CAS啊，因为一直尝试获取，所以说实现了并发下的较高效率
 
 - 获取写入锁: scanAndLockForPut
+
+     segment槽初始化好了，可以进行trylock获取segment的对象锁，然后进行写入，当锁获取失败的时候，就是说名有竞争的时候，那么就用有限循环的方式获取锁，自旋
 
   ​	前面我们看到，在往某个 segment 中 put 的时候，首先会调用 node = tryLock() ? null : scanAndLockForPut(key, hash, value)，也就是说先进行一次 tryLock() 快速获取该 segment 的独占锁，如果失败，那么进入到 scanAndLockForPut 这个方法来获取锁。
 
@@ -1102,6 +1104,8 @@ final V put(K key, int hash, V value, boolean onlyIfAbsent) {
 1. 计算 hash 值，找到 segment 数组中的具体位置，或我们前面用的“分段锁”
 2. 槽中也是一个数组，根据 hash 找到数组中具体的位置
 3. 到这里是链表了，顺着链表进行查找即可
+
+对，两次hash，一次hash计算分配到哪个segement数组
 
 ```java
 public V get(Object key) {
