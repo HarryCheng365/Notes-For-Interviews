@@ -1,5 +1,9 @@
 # Spring框架入门
 
+### 静态代理与动态代理？
+
+简单的Java对象（Plain Old Java Object）
+
 ### 作用简介
 
 ​	纵览Spring ， 读者会发现Spring 可以做非常多的事情。 但归根结底， 支撑Spring的仅仅是少许的基本理念， 所有的理念都可以追溯到Spring最根本的使命上： 简化Java开发。
@@ -16,6 +20,10 @@
 ​	几乎Spring所做的任何事情都可以追溯到上述的一条或多条策略。
 
 ​	我将通过具体的案例进一步阐述这些理念， 以此来证明Spring是如何完美兑现它的承诺的， 也就是简化Java开发。 让我们先从基于POJO的最小侵入性编程开始。
+
+##### 补充：Spring根本策略
+
+对POJO最小侵入式编程，不会让代码和Spring绑死，甚至你看不出来Spring框架的痕迹，只有几个注解表明这个bean受Spring容器的管理
 
 ### 最小侵入编程
 
@@ -73,7 +81,13 @@ public class DamselRescuingKnight implements Knight {
 
 ​	**耦合具有两面性（two-headed beast） 。 一方面， 紧密耦合的代码难以测试、 难以复用、 难以理解， 并且典型地表现出“打地鼠”式的bug特性（修复一个bug， 将会出现一个或者更多新的bug） 。 另一方面， 一定程度的耦合又是必须的——完全没有耦合的代码什么也做不了。 为了完成有实际意义的功能， 不同的类必须以适当的方式进行交互。 总而言之， 耦合是必须的， 但应当被小心谨慎地管理。**
 
+##### 补充：一定的依赖是必须的，DI的方式管理
+
 ​	**通过DI**， **<font color='red'>对象的依赖关系</font>将由系统中负责协调各对象的<font color='red'>第三方组件</font>在<font color='red'>创建对象的时候进行设定</font>**。 对象无需自行创建或管理它们的依赖关系。
+
+​	对象不需要知道依赖谁或者来自何处的依赖，只需要在创建对象的时候自行设定就好了，所以 
+
+@AutoWired @Resource
 
 ​	DI的另外一种介绍：DI是组装应用对象的一种方式，借助这种方式，对象无需知道依赖来自何处或者依赖的实现方式。不同于自己获得依赖对象，对象会在运行期间被容器赋予它们所依赖的对象。依赖对象通常会通过接口来被注入，这样就可以保证低耦合。
 
@@ -182,11 +196,75 @@ public class KnightConfig {
   }
 
 }
+//这事一个Configuration 配置类
 ```
 
-​	尽管BraveKnight依赖于Quest， 但是它并不知道传递给它的是什么类型的Quest， 也不知道这个Quest来自哪里。 与之类似， SlayDragonQuest依赖于PrintStream， 但是在编码时它并不需要知道这个PrintStream是什么样子的。 **总之，尽管Bean之间存在种种依赖关系，但在编码时它们并不知道具体依赖谁，只有Spring通过它的配置， 能够了解这些组成部分是如何装配起来的。 这样的话， 就可以在不改变所依赖的类的情况下， 修改依赖关系**。
+​	
+
+尽管BraveKnight依赖于Quest， 但是它并不知道传递给它的是什么类型的Quest， 也不知道这个Quest来自哪里。 与之类似， SlayDragonQuest依赖于PrintStream， 但是在编码时它并不需要知道这个PrintStream是什么样子的。 **总之，尽管Bean之间存在种种依赖关系，但在编码时它们并不知道具体依赖谁，只有Spring通过它的配置， 能够了解这些组成部分是如何装配起来的。 这样的话， 就可以在不改变所依赖的类的情况下， 修改依赖关系**。
+
+//所以Spring中配置类大量存在，能够了解这些组成部分是如何装起来的。
+
+上图其实是告诉我们bean之间是如何依赖的
+
+
+
+Bean之间存在种种依赖关系，但是在编码的时候不知道具体依赖谁
+
+但是其实Bean由于DI，已经是弱依赖了，通过DI这种IOC的手段之一，当然这里用了构造器DI的方式，是DI手段的一种，
+
+##### 补充：Bean循环依赖关系
+
+**结论：**Spring只能解决单例模式下的Setter 或者feild的循环依赖
+
+Spring无法解决prototype的循环依赖的问题
+
+循环依赖其实就是Bean由Bean Factory统一创建，可能会出现A中构造器DI了B， B中DI了C，C中又DI了A，然后不知道怎么创建
+
+Spring中循环依赖的场景有：构造器循环依赖，field属性的循环依赖
+
+
+
+**Spring单例对象的初始化主要分三步**
+
+createBeanInstance 实例化
+
+populateBean 填充属性，这一步主要是多bean依赖属性进行填充
+
+InitializeBean 初始化
+
+解决单例setter循环依赖 主要是靠
+
+这三级缓存分别指： 
+singletonFactories ： 单例对象工厂的cache 
+earlySingletonObjects ：提前暴光的单例对象的Cache 
+singletonObjects：单例对象的cache
+
+
+
+分析getSingleton()的整个过程，Spring首先从一级缓存singletonObjects中获取。如果获取不到，并且对象正在创建中，就再从二级缓存earlySingletonObjects中获取。如果还是获取不到且允许singletonFactories通过getObject()获取，就从三级缓存singletonFactory.getObject()(三级缓存)获取
+
+
+
+##### 怎样检测循环依赖？
+
+检测循环依赖比较容易，Bean在创建的时候可以给Bean打标，如果递归调用回来发现正在创建中的话，说明循环依赖了。
+
+##### Java来描述配置，Xml来描述配置
+
+其实只是不同的方法而已，都是告诉Spring容器 这两个bean之间是如何依赖的
+
+注入的方式还有很多
 
 ### ApplicationContext 自动装配
+
+##### 补充：什么叫上下文
+
+程序里面所谓的“上下文”就是程序的执行环境，打个比方：你有家吧？如果家都没有就别学编程了，租的也行啊！你就相当于web程序，家就相当于web程序的上下文，你可以在家里放东西，也可以取东西，你的衣食住行都依赖这个家，这个家就是你生活的上下文环境。
+
+其实就是一个Bean的大容器，应该有更多相关的服务功能，就像线程池一样
+
+Application Context 装载Bean的定义 并把它们组装起来
 
 ​	Spring通过应用上下文（Application Context） 装载bean的定义并把它们组装起来。 Spring应用上下文全权负责对象的创建和组装。 Spring自带了多种应用上下文的实现， 它们之间主要的区别仅仅在于如何加载配置。
 
@@ -229,7 +307,7 @@ public class KnightMain {
 
 ​	下图展示了这种复杂性。 左边的业务对象与系统级服务结合得过于紧密。 每个对象不但要知道它需要记日志、 进行安全控制和参与事务， 还要亲自执行这些服务。
 
-![](/Users/mrjiao/Documents/typora/java/assets/业务对象与系统级服务结合过于紧密.png)
+![](../assets/业务对象与系统级服务结合过于紧密.png)
 
 ​	在整个系统内， 关注点（例如日志和安全）的调用经常散布到各个模块中， 而这些关注点并不是模块的核心业务。
 
@@ -237,7 +315,7 @@ public class KnightMain {
 
 ​	如下图所示， 我们可以把切面想象为覆盖在很多组件之上的一个外壳。 应用是由那些实现各自业务功能的模块组成的。 借助AOP， 可以使用各种功能层去包裹核心业务层。 这些层以声明的方式灵活地应用到系统中， 你的核心应用甚至根本不知道它们的存在。 这是一个非常强大的理念， 可以将安全、 事务和日志关注点与核心业务逻辑相分离。
 
-![](/Users/mrjiao/Documents/typora/java/assets/业务与系统级业务相分离.png)
+![](../assets/业务与系统级业务相分离.png)
 
 ​	利用AOP， 系统范围内的关注点覆盖在它们所影响组件之上
 
@@ -338,15 +416,28 @@ public class BraveKnight implements Knight {
   </aop:config>
 
 </beans>
+<aop:config>
+	<aop:aspect ref="minstrel"> aop:aspect 指明引用对象
+	<aop:pointcut id="embart"
+    expression
+    <aop:before pointcut-ref=""> //aop before 讲明在切点之前干什么 
 ```
 
 ​	这里使用了Spring的aop配置命名空间把Minstrel bean声明为一个切面。 首先， 需要把Minstrel声明为一个bean， 然后在元素中引用该bean。 为了进一步定义切面， 声明（使用） 在embarkOnQuest()方法执行前调用Minstrel的singBeforeQuest()方法。 这种方式被称为前置通知（before advice） 。 同时声明（使用）在embarkOnQuest()方法执行后调用singAfter Quest()方法。 这种方式被称为后置通知（after advice） 。
 
-​	首先， Minstrel仍然是一个POJO， 没有任何代码表明它要被作为一个切面使用。 当我们按照上面那样进行配置后， 在Spring的上下文中， Minstrel实际上已经变成一个切面了。
+
+
+​	**首先， Minstrel仍然是一个POJO， 没有任何代码表明它要被作为一个切面使用。 当我们按照上面那样进行配置后， 在Spring的上下文中， Minstrel实际上已经变成一个切面了。**
+
+
 
 ​	其次， 也是最重要的， Minstrel可以被应用到BraveKnight中， 而BraveKnight不需要显式地调用它。 实际上， BraveKnight完全不知道Minstrel的存在。
 
+​	把某一个类变为切面之前，必须声明它为一个切面
+
 ​	必须还要指出的是， 尽管我们使用Spring把Minstrel转变为一个切面， 但首先要把它声明为一个Spring bean。 能够为其他Spring bean做到的事情都可以同样应用到Spring切面中， 例如为它们注入依赖。
+
+AOP也只有Spring可以做到，因为Spring是一个超级bean factory所以可以监控各个bean的动向，调用什么方法
 
 ### 使用模板消除样板式代码
 
@@ -386,18 +477,20 @@ public class BraveKnight implements Knight {
 
 Spring结构图如下：
 
-![](/Users/mrjiao/Documents/typora/java/assets/Spring%E7%BB%93%E6%9E%84%E5%9B%BE.png)
+![](../assets/Spring%E7%BB%93%E6%9E%84%E5%9B%BE.png)
+
+ORM object-relational mapping
 
 各模块解析如下：
 
-- Spring核心容器
+- Spring核心容器  beans core context上下文部分
 - Spring的AOP模块
 - 数据访问与集成
 - web与远程调用
 - Instrument
 - 测试
 
-# 装配Bean
+# 装配Bean ✅
 
 ### 简介
 
@@ -428,7 +521,9 @@ Spring结构图如下：
 
 
 
-### Bean的作用域
+### Bean的作用域 这就是feild吧 ✅
+
+field injection
 
 ​	Spring定义了多种作用域，可以基于这些作用域创建Bean，包括：
 
@@ -443,7 +538,7 @@ Spring结构图如下：
 
 ​	在基于Spring的应用中，应用对象存在于Spring容器中，Spring容器负责创建对象，装配它们，配置它们并管理它们的整个生命周期，从出生到死亡。如下图所示：
 
-![](/Users/mrjiao/Documents/typora/java/assets/Spring容器.png)
+![](../assets/Spring容器.png)
 
 ​	容器是Spring框架的核心，Spring容器使用DI管理构成应用的组件，它会创建相互协作的组件之间的关联。这样会使对象更加简单干净，更加易于测试。
 
@@ -460,7 +555,7 @@ Spring结构图如下：
 
 ApplicationContext的整体结构图如下：
 
-![](/Users/mrjiao/Documents/typora/java/assets/SpringApplicationContext结构.png)
+![](../assets/SpringApplicationContext结构.png)
 
 由图可以看出，Spring自带了多种类型的应用上下文。如：
 
@@ -481,7 +576,11 @@ ApplicationContext context = new ClassPathXmlApplicationContext("tet.xml");
 ApplicationContext context = new AnnotationConfigApplicationContext(MainConfig.class);
 ```
 
+将bean装配到bean工厂
+
 ### BeanFactory
+
+
 
 ### 基于注解向容器中注入bean
 
@@ -495,7 +594,7 @@ ApplicationContext context = new AnnotationConfigApplicationContext(MainConfig.c
 
 ​	但Spring容器中，bean的生命周期要复杂很多，ApplicationContext中一个bean的生命周期如下：
 
-![](/Users/mrjiao/Documents/typora/java/assets/bean 生命周期1.png)
+![](../assets/bean 生命周期1.png)
 
 ### 接口方法分类
 
@@ -511,7 +610,7 @@ Bean的完整生命周期经历了各种方法调用，这些方法可以划分�
 
 在函数调用中的具体流程如下，其中，**红色为容器级生命周期接口方法，绿色为Bean级生命周期接口方法**：
 
-![](/Users/mrjiao/Documents/typora/java/assets/bean%E5%A3%B0%E6%98%8E%E5%91%A8%E6%9C%9F2.png)
+![](../assets/bean%E5%A3%B0%E6%98%8E%E5%91%A8%E6%9C%9F2.png)
 
 ### 完整生命周期测试
 
@@ -786,6 +885,7 @@ Bean的完整生命周期经历了各种方法调用，这些方法可以划分�
    
    这是BeanPostProcessor实现类构造器！！
    
+   
    这是InstantiationAwareBeanPostProcessorAdapter实现类构造器！！
    
    InstantiationAwareBeanPostProcessor调用postProcessBeforeInstantiation方法
@@ -814,6 +914,8 @@ Bean的完整生命周期经历了各种方法调用，这些方法可以划分�
    
    容器初始化成功
    
+   
+   
    Person [address=广州, name=张三, phone=110]
    
    现在开始关闭容器！
@@ -832,6 +934,10 @@ Bean的完整生命周期经历了各种方法调用，这些方法可以划分�
 ​	该方式属于Bean自身的方法。
 
 ​	基础的bean类定义如下，可以看到已经声明了init和destroy方法，注意此处方法名并不一定是init和destroy，只要正确绑定就可以。
+
+
+
+##### XML和注解的方式配置都可以
 
 ```java
 //基础的bean类
@@ -890,6 +996,8 @@ car destroy
 ​	由此引入init和destroy的作用，很多情况下需要对bean进行一些预处理和后置操作，比如说连接数据源、关闭连接等，这些操作都可以放在init和destroy中完成。
 
 ​	上面的测试用例是建立在单实例的情况下，**在单实例情况下，bean会被自动创建，会自动调用其init和destroy方法，而在多实例情况下，bean只有在获取时才会被创建，只有在创建时init才会被调用，创建完成后销毁容器也不会调用destroy！**
+
+lazy 加载的方式
 
 ​	如下例所示：
 
@@ -954,6 +1062,8 @@ public class Car{
 
 ```java
 //配置类
+//使用scope注解，默认是单实例的bean的，
+//所以一些service类和repository类都是默认的单实例的，否则会出现问题
 @Configuration	//使用该注解表明该类是一个配置类
 public class Cfg(){
   
@@ -1000,13 +1110,15 @@ car init
 
 ​	软件中的一些功能(如日志、安全、事务管理等)会用到应用程序的多个地方，若在每个点都调用它们，代码会很繁杂，如下图所示：
 
-![](/Users/mrjiao/Documents/typora/java/assets/业务对象与系统级服务结合过于紧密.png)
+![](../assets/业务对象与系统级服务结合过于紧密.png)
 
 ​	可否让业务对象只关注自身的业务，而将其它方面的问题交由其他应用对象来处理呢？如下图所示：
 
-![](/Users/mrjiao/Documents/typora/java/assets/业务与系统级业务相分离.png)
+![](../assets/业务与系统级业务相分离.png)
 
 ​	可以看到，所有的业务对象都被集中到了一个面上，在这个面的下方有事务管理切面、日志管理切面、安全管理切面。我们每次只关心业务切面上的逻辑，而将别的切面上的逻辑交由其它应用对象来处理。这就是面向切面编程的思想(AOP，Aspect-Oriented Programming)。
+
+
 
 # IOC代码解析
 
@@ -1015,6 +1127,12 @@ car init
 ​	**IOC 总体来说有两处地方最重要，一个是创建 Bean 容器，一个是初始化 Bean**，如果读者觉得一次性看完本文压力有点大，那么可以按这个思路分两次消化。读者不一定对 Spring 容器的源码感兴趣，也许附录部分介绍的知识对读者有些许作用。
 
 ​	希望通过本文可以让读者不惧怕阅读 Spring 源码，也希望大家能反馈表述错误或不合理的地方。
+
+##### 补充：IOC的理解
+
+IOC就是将bean的创建和初始化的权利交给了Spring容器
+
+Spring容器，会在运行时根据配置文件，动态的创建和管理对象并调用对象的init和destroy方法，而bean内部的其他方法，则由业务代码进行决定，并且这种创建机制是绕过编译器的，是采用反射的机制，所以当时我去看反射是没错的
 
 ### 引言
 
@@ -1040,15 +1158,18 @@ public static void main(String[] args) {
 
 **注：spring-context 会自动将 spring-core、spring-beans、spring-aop、spring-expression 这几个 jar 包带进来。**
 
+**Spring 核心 就是context core beans aop 和expression**
+
 ​	多说一句，很多开发者入门就直接接触的 SpringMVC，对 Spring 其实不是很了解，Spring 是渐进式的工具，并不具有很强的侵入性，它的模块也划分得很合理，即使你的应用不是 web 应用，或者之前完全没有使用到 Spring，而你就想用 Spring 的依赖注入这个功能，其实完全是可以的，它的引入不会对其他的组件产生冲突。
 
 <hr>
-
 ##### ApplicationContext 结构
+
+> bean需要配置，而bean配置的方式之前我都说了
 
 ​	废话说完，我们继续。`ApplicationContext context = new ClassPathXmlApplicationContext(...)` 其实很好理解，从名字上就可以猜出一二，就是在 ClassPath 中寻找 xml 配置文件，根据 xml 文件内容来构建 ApplicationContext。当然，除了 ClassPathXmlApplicationContext 以外，我们也还有其他构建 ApplicationContext 的方案可供选择，我们先来看看大体的继承结构是怎么样的：
 
-![](/Users/mrjiao/Documents/typora/java/assets/SpringApplicationContext结构.png)
+![](../assets/SpringApplicationContext结构.png)
 
 ​	我们可以看到，ClassPathXmlApplicationContext 兜兜转转了好久才到 ApplicationContext 接口，同样的，我们也可以使用绿颜色的 **FileSystemXmlApplicationContext** 和 **AnnotationConfigApplicationContext** 这两个类。
 
@@ -1111,6 +1232,10 @@ public class App {
 }
 ```
 
+##### 补充：理解
+
+ApplicationContext 其实就是个容器 
+
 以上例子很简单，不过也够引出本文的主题了，就是怎么样通过配置文件来启动 Spring 的 ApplicationContext？也就是我们今天要分析的 IOC 的核心了。ApplicationContext 启动过程中，会负责创建实例 Bean，往各个 Bean 中注入依赖等。
 
 ### BeanFactory
@@ -1121,14 +1246,20 @@ public class App {
 
 ##### BeanFactory 继承结构图
 
-![](/Users/mrjiao/Documents/typora/java/assets/BeanFactory 继承结构图.png)
+![](../assets/BeanFactory 继承结构图.png)
 
 我想，大家看完这个图以后，可能就不是很开心了。ApplicationContext 往下的继承结构前面一张图说过了，这里就不重复了。这张图呢，背下来肯定是不需要的，有几个重点和大家说明下就好：
 
 1. **ApplicationContext 继承了 ListableBeanFactory，这个 Listable 的意思就是，通过这个接口，我们可以获取多个 Bean，大家看源码会发现，最顶层 BeanFactory 接口的方法都是获取单个 Bean 的**。
+
 2. **ApplicationContext 继承了 HierarchicalBeanFactory，Hierarchical 单词本身已经能说明问题了，也就是说我们可以在应用中起多个 BeanFactory，然后可以将各个 BeanFactory 设置为父子关系**。
+
 3. AutowireCapableBeanFactory 这个名字中的 Autowire 大家都非常熟悉，它就是用来自动装配 Bean 用的，但是仔细看上图，ApplicationContext 并没有继承它，不过不用担心，不使用继承，不代表不可以使用组合，如果你看到 ApplicationContext 接口定义中的最后一个方法 getAutowireCapableBeanFactory() 就知道了。
+
+   没有继承 不代表不能使用组合，因为java是单继承的 所以 只好组合了
+
 4. ConfigurableListableBeanFactory 也是一个特殊的接口，看图，特殊之处在于它继承了第二层所有的三个接口，而 ApplicationContext 没有。这点之后会用到。
+
 5. 请先不用花时间在其他的接口和类上，先理解我说的这几点就可以了。
 
 然后，请读者打开编辑器，翻一下 BeanFactory、ListableBeanFactory、HierarchicalBeanFactory、AutowireCapableBeanFactory、ApplicationContext 这几个接口的代码，大概看一下各个接口中的方法，大家心里要有底，限于篇幅，我就不贴代码介绍了。
@@ -1138,7 +1269,7 @@ public class App {
 
 先看ApplicationContext总体结构图：
 
-![](/Users/mrjiao/Documents/typora/java/assets/SpringApplicationContext结构.png)
+![](../assets/SpringApplicationContext结构.png)
 
 1. 最外层main方法，传入配置类，创建ioc容器
 
@@ -1191,58 +1322,66 @@ public class App {
 
    4. 这里需要知道`BeanFactoryPostProcessor`知识点，[具体请点击](https://www.cnblogs.com/sishang/p/6588542.html)。
 
-      这里是提供给子类的扩展点，到这里的时候，所有的 Bean 都加载、注册完成了，但是都还没有初始化，具体的子类可以在这步的时候添加一些特殊的 BeanFactoryPostProcessor 的实现类或做点什么事。
+      这里是提供给子类的扩展点，到这里的时候，所有的 Bean 都加载、注册完成了，
 
+      但是都还没有初始化，具体的子类可以在这步的时候添加一些特殊的 BeanFactoryPostProcessor 的实现类或做点什么事。
+   
+      
+
+      加载解析成一个个bean定义，类似于字节码文件加载成类对象，注册，注册到beanFactory中
+
+      上一步就是完成一个beanName->beanDefinition的map
+   
       ```java
-      this.postProcessBeanFactory(beanFactory);
+   this.postProcessBeanFactory(beanFactory);
       ```
 
    5. 调用 BeanFactoryPostProcessor 各个实现类的 postProcessBeanFactory(factory) 方法
-
+   
       ```
-      this.invokeBeanPostProcessors(beanFactory);
+   this.invokeBeanPostProcessors(beanFactory);
       ```
 
    6. 注册BeanPostProcessor的实现类，BeanPostProcessor属于容器级生命周期控制接口，其中定义了两个方法，分别是`postProcessBeforeInitialization`和`postProcessAfterInitialization`，在容器初始化以后，Spring 会负责调用里面的 postProcessBeanFactory 方法。 两个方法分别在 Bean 初始化之前和初始化之后得到执行。注意，到这里 Bean 还没初始化
-
+   
       ```
       this.registerBeanPostProcessors(beanFactory);
       ```
-
+   
    7. 以下几个操作不是重点，不展开说：
 
       ```java
-      //初始化当前 ApplicationContext 的 MessageSource
+   //初始化当前 ApplicationContext 的 MessageSource
       this.initMessageSource();
       
       //初始化当前 ApplicationContext 的事件广播器
-      this.initApplicationEventMulticaster();
+   this.initApplicationEventMulticaster();
       ```
 
    8. 从方法名就可以知道，典型的模板方法(钩子方法)，具体的子类可以在这里初始化一些特殊的 Bean（在初始化 singleton beans 之前）
-
+   
       ```
-      this.onRefresh();
+   this.onRefresh();
       ```
 
    9. 注册事件监听器，监听器需要实现 ApplicationListener 接口。这也不是我们的重点，过
-
+   
       ```
-      this.registerListeners();
+   this.registerListeners();
       ```
 
    10. 重点，初始化所有的Singleton Bean，lazy-init的除外
-
+   
        ```
-       this.finishBeanFactoryInitialization(beanFactory);
+    this.finishBeanFactoryInitialization(beanFactory);
        ```
-
+   
    11. 最后，广播事件，ApplicationContext 初始化完成
-
+   
        ```
        this.finishRefresh();
        ```
-
+   
        
 
 ```java
@@ -1472,9 +1611,11 @@ protected final void refreshBeanFactory() throws BeansException {
 
 ​	我们说说为什么选择实例化 **DefaultListableBeanFactory** ？前面我们说了有个很重要的接口 ConfigurableListableBeanFactory，它实现了 BeanFactory 下面一层的所有三个接口，我把之前的继承图再拿过来大家再仔细看一下：
 
-![](/Users/mrjiao/Documents/typora/java/assets/BeanFactory 继承结构图.png)
+![](../assets/BeanFactory 继承结构图.png)
 
 ​	我们可以看到 ConfigurableListableBeanFactory 只有一个实现类 DefaultListableBeanFactory，而且实现类 DefaultListableBeanFactory 还通过实现右边的 AbstractAutowireCapableBeanFactory 通吃了右路。所以结论就是，最底下这个家伙 DefaultListableBeanFactory 基本上是最牛的 BeanFactory 了，这也是为什么这边会使用这个类来实例化的原因。
+
+
 
 ​	如果你想要在程序运行的时候动态往 Spring IOC 容器注册新的 bean，就会使用到这个类。那我们怎么在运行时获得这个实例呢？之前我们说过 ApplicationContext 接口能获取到 AutowireCapableBeanFactory，就是最右上角那个，然后它向下转型就能得到 DefaultListableBeanFactory 了。
 
@@ -1762,6 +1903,8 @@ public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext
 
 ​	AOP，即Aspect-Oriented Programming，面向切面编程。要实现的是在我们原来写的代码的基础上，进行一定的包装，如在方法执行前、方法返回后、方法抛出异常后等地方进行一定的拦截处理或者叫增强处理。
 
+
+
 ​	Spring AOP的特点如下：
 
 - 它基于动态代理来实现。默认地，如果使用接口的，用 JDK 提供的动态代理实现，如果没有接口，使用 CGLIB 实现。大家一定要明白背后的意思，包括什么时候会不用 JDK 提供的动态代理，而用 CGLIB 实现。
@@ -1769,6 +1912,14 @@ public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext
 - Spring 的 IOC 容器和 AOP 都很重要，Spring AOP 需要依赖于 IOC 容器来管理。
 - 如果你是 web 开发者，有些时候，你可能需要的是一个 Filter 或一个 Interceptor，而不一定是 AOP。
 - Spring AOP 只能作用于 Spring 容器中的 Bean，它是使用纯粹的 Java 代码实现的，只能作用于 bean 的方法。
+
+##### 补充：解释一下代理模式
+
+问题： 解释一下代理模式（Proxy）
+
+- 代理模式： 代理模式就是本该我做的事，我不做，我交给代理人去完成。就比如，我生产了一些产品，我自己不卖，我委托代理商帮我卖，让代理商和顾客打交道，我自己负责主要产品的生产就可以了。 代理模式的使用，需要有本类，和代理类，本类和代理类共同实现统一的接口。然后在main中调用就可以了。本类中的业务逻辑一般是不会变动的，在我们需要的时候可以不断的添加代理对象，或者修改代理类来实现业务的变更。
+- 代理模式可以分为： 静态代理 优点：可以做到在不修改目标对象功能的前提下，对目标功能扩展 缺点：因为本来和代理类要实现统一的接口，所以会产生很多的代理类，类太多，一旦接口增加方法，目标对象和代理对象都要维护。 动态代理（JDK代理/接口代理） 代理对象，不需要实现接口，代理对象的生成，是利用JDK的API，动态的在内存中构建代理对象，需要我们指定代理对象/目标对象实现的接口的类型。 Cglib代理 特点: 在内存中构建一个子类对象，从而实现对目标对象功能的扩展。
+- 使用场景： 修改代码的时候。不用随便去修改别人已经写好的代码，如果需要修改的话，可以通过代理的方式来扩展该方法。 隐藏某个类的时候，可以为其提供代理类 当我们要扩展某个类功能的时候，可以使用代理类 当一个类需要对不同的调用者提供不同的调用权限的时候，可以使用代理类来实现。 减少本类代码量的时候。 需要提升处理速度的时候。就比如我们在访问某个大型系统的时候，一次生成实例会耗费大量的时间，我们可以采用代理模式，当用来需要的时候才生成实例，这样就能提高访问的速度。
 
 ### 实例演示
 
