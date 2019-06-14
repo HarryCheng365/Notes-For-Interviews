@@ -485,6 +485,8 @@ Future是一个接口，FutureTask是Future的实现类
 
 ##### 4. 限期等待( TIMED-WAITING )
 
+​	一定时间后被系统自动唤醒 限期等待
+
 ​	在一定时间后会被系统自动唤醒，以下情况下线程处于限期等待状态：
 
 - Thread.sleep()
@@ -497,9 +499,13 @@ Future是一个接口，FutureTask是Future的实现类
 
 ​	线程处于阻塞状态停止运行，等待获取排它锁。比如当某块代码有sychronized关键字修饰时，一个线程进入后，别的线程就无法进入，处于阻塞状态，直到已经进入的线程释放资源。
 
+​	阻塞状态停止运行 这个无法人为操控
+
 ##### 6. 终结(TEMINATED)
 
 ​	线程已经结束状态，即run()方法已经运行完。处于终结状态的线程不可以再使用，否则会抛出IllegalThreadStateException异常。
+
+​	处于终结状态的线程不可再用，否则会跑出IllegalThreadStateException的异常
 
 ### 补充：ThreadLocal是什么
 

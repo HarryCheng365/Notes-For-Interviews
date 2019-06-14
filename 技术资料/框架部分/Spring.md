@@ -219,7 +219,7 @@ Bean之间存在种种依赖关系，但是在编码的时候不知道具体依�
 
 Spring无法解决prototype的循环依赖的问题
 
-循环依赖其实就是Bean由Bean Factory统一创建，可能会出现A中构造器DI了B， B中DI了C，C中又DI了A，然后不知道怎么创建
+循环依赖其实就是Bean由Bean Factory统一创建，可能会出现A中构造器DI了B， B中DI了C，C中又DI了A，然后不知道怎么创建，//是的Bean由Bean Factory循环依赖
 
 Spring中循环依赖的场景有：构造器循环依赖，field属性的循环依赖
 
@@ -236,13 +236,168 @@ InitializeBean 初始化
 解决单例setter循环依赖 主要是靠
 
 这三级缓存分别指： 
-singletonFactories ： 单例对象工厂的cache 
+singletonFactories ： 单例对象工厂的cache ，是的 这个是
 earlySingletonObjects ：提前暴光的单例对象的Cache 
-singletonObjects：单例对象的cache
+singletonObjects：单例对象的cache 一级缓存，在创建bean实例的时候会先去singletonObjects中查看是否有该bean的缓存。
+
+singletonObjects 看看有没有相应bean的缓存，如果有是不是我的eager-init 如果不是 就会清除缓存，重走doCreateBean的路线，
 
 
 
-分析getSingleton()的整个过程，Spring首先从一级缓存singletonObjects中获取。如果获取不到，并且对象正在创建中，就再从二级缓存earlySingletonObjects中获取。如果还是获取不到且允许singletonFactories通过getObject()获取，就从三级缓存singletonFactory.getObject()(三级缓存)获取
+分析getSingleton()的整个过程，Spring首先从一级缓存singletonObjects中获取。如果获取不到，并且对象正在创建中，就再从二级缓存earlySingletonObjects中获取。如果还是获取不到且允许singletonFactories通过getObject()获取，就从三级缓存singletonFactory.getObject()(三级缓存)获取正在创建中的bean，（提前暴露，刚完成构造器注入，但是没有完成setter注入的）
+
+```
+this.earlySingletonObjects.put(beanName, singletonObject);
+                        this.singletonFactories.remove(beanName);
+```
+
+AbstractAutowireCapableBeanFactory中用createBean创建bean
+
+这个createBean主要是从类Factory的角度
+
+- 判断需要创建的Bean是否可以实例化，这个类是否可以通过类装载器来载入
+- 是否配置了后置处理器相关处理（如果配置了则返回一个代理）
+- 创建Bean
+
+```java
+protected Object createBean(String beanName, RootBeanDefinition mbd, Object[] args) throws BeanCreationException {
+	if (logger.isDebugEnabled()) {
+		logger.debug("Creating instance of bean '" + beanName + "'");
+	}
+	RootBeanDefinition mbdToUse = mbd;
+	// Make sure bean class is actually resolved at this point, and
+	// clone the bean definition in case of a dynamically resolved Class
+	// which cannot be stored in the shared merged bean definition.
+	//判断需要创建的Bean是否可以实例化，这个类是否可以通过类装载器来载入
+	Class resolvedClass = resolveBeanClass(mbd, beanName);
+	if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
+		mbdToUse = new RootBeanDefinition(mbd);
+		mbdToUse.setBeanClass(resolvedClass);
+	}
+
+	// Prepare method overrides.
+	try {
+		mbdToUse.prepareMethodOverrides();
+	}
+	catch (BeanDefinitionValidationException ex) {
+		//异常：Validation of method overrides failed
+	}
+
+	try {
+		// Give BeanPostProcessors a chance to return a proxy instead of the target 
+		//bean instance.
+		//是否配置了后置处理器相关处理（如果配置了则返回一个代理）
+		Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+		if (bean != null) {
+			return bean;
+		}
+	}
+	catch (Throwable ex) {
+	    //异常:BeanPostProcessor before instantiation of bean failed
+	}
+    //创建Bean
+	Object beanInstance = doCreateBean(beanName, mbdToUse, args);
+	if (logger.isDebugEnabled()) {
+		logger.debug("Finished creating instance of bean '" + beanName + "'");
+	}
+	return beanInstance;
+}
+```
+
+
+
+ doCreateBean函数的内容，这里会判断有没有单例缓存，如果有就清除，并且调用
+
+createBeanInstance方法，所以 三级缓存全是createBeanInstance方法之后的事了，构造器
+
+```
+// 用BeanWrapper来持有创建出来的Bean对象
+BeanWrapper instanceWrapper = null;
+//如果是单例的话，则先把缓存中的同名bean清除
+if (mbd.isSingleton()) {
+	instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
+}
+//实际创建的交给createBeanInstance来完成，
+//bean的生成，这里会使用默认的类生成器，包装成BeanWrapperImpl类，
+//为了下面的populateBean方法的属性注入做准备  
+if (instanceWrapper == null) {
+	instanceWrapper = createBeanInstance(beanName, mbd, args);
+}
+final Object bean = (instanceWrapper != null ? instanceWrapper.getWrappedInstance() : null);
+Class beanType = (instanceWrapper != null ? instanceWrapper.getWrappedClass() : null);
+mbd.resolvedTargetType = beanType;
+```
+
+在doCreateBean方法里
+
+```
+boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
+		isSingletonCurrentlyInCreation(beanName));
+if (earlySingletonExposure) {
+	if (logger.isDebugEnabled()) {
+		logger.debug("Eagerly caching bean '" + beanName +
+				"' to allow for resolving potential circular references");
+	}
+	addSingletonFactory(beanName, new ObjectFactory() {
+		@Override
+		public Object getObject() throws BeansException {
+			return getEarlyBeanReference(beanName, mbd, bean);
+		}
+	});
+}
+```
+
+**这里就是createBeanInstance方法的内容，这里就是创建出来提前曝光解决循环依赖，给其他进行依赖的方法，在doCreateBean里所以 createBeanInstance方法应该是已经执行完了，所以constructor的循环依赖事没办法解决的**
+
+同样可以看到在createBean方法中 对bean 有 doCreateBean，populate
+
+```
+protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, Object[] args) {
+	// 确保bean类实际上已经解析过了，可以实例化
+	Class beanClass = resolveBeanClass(mbd, beanName);
+
+	if (beanClass != null && !Modifier.isPublic(beanClass.getModifiers()) && !mbd.isNonPublicAccessAllowed()) {
+		//异常：Bean class isn't public, and non-public access not allowed:beanName
+	}
+     //1. 使用工厂方法来进行bean的实例化
+	if (mbd.getFactoryMethodName() != null)  {
+		return instantiateUsingFactoryMethod(beanName, mbd, args);
+	}
+
+	// 重新创建相同的bean时快捷方式...
+	boolean resolved = false;
+	boolean autowireNecessary = false;
+	if (args == null) {
+		synchronized (mbd.constructorArgumentLock) {
+			if (mbd.resolvedConstructorOrFactoryMethod != null) {
+				resolved = true;
+				autowireNecessary = mbd.constructorArgumentsResolved;
+			}
+		}
+	}
+	if (resolved) {
+		if (autowireNecessary) {
+			return autowireConstructor(beanName, mbd, null, null);
+		}
+		else {
+			return instantiateBean(beanName, mbd);
+		}
+	}
+
+	// 2.需要确定构造函数...,使用构造函数进行bean实例化
+	Constructor[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);
+	if (ctors != null ||
+			mbd.getResolvedAutowireMode() == RootBeanDefinition.AUTOWIRE_CONSTRUCTOR ||
+			mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args))  {
+		return autowireConstructor(beanName, mbd, ctors, args);
+	}
+
+	//3.没有特殊的处理：只需使用无参数构造函数。（默认构造函数）
+	return instantiateBean(beanName, mbd);
+}
+```
+
+SimpleInstantiationStrategy是Spring用来生成Bean对象的默认类，在这个类中提供了两种实例化java对象的方法，一种是基于java自身反射机制的BeanUtils，还有一种就是基于Cglib
 
 
 
@@ -522,6 +677,10 @@ ORM object-relational mapping
 
 
 ### Bean的作用域 这就是feild吧 ✅
+
+这个feild 和 反射机制中的feil的意思不一样，反射机制中的feild的意思是属性
+
+这个feild意思是 作用域，同时 aop是基于ioc的 
 
 field injection
 
@@ -1326,7 +1485,7 @@ ApplicationContext 其实就是个容器
 
       但是都还没有初始化，具体的子类可以在这步的时候添加一些特殊的 BeanFactoryPostProcessor 的实现类或做点什么事。
    
-      
+      postProcessBeanFactory(beanFatory)这里就是注册实现了BeanFactoryPostProcess
 
       加载解析成一个个bean定义，类似于字节码文件加载成类对象，注册，注册到beanFactory中
 
@@ -1338,43 +1497,51 @@ ApplicationContext 其实就是个容器
 
    5. 调用 BeanFactoryPostProcessor 各个实现类的 postProcessBeanFactory(factory) 方法
    
+      postProcessBeanFactory()中的方法，是一个可以对beanFactory进行修改的方法，这里是个扩展点
+   
       ```
    this.invokeBeanPostProcessors(beanFactory);
       ```
-
+   
    6. 注册BeanPostProcessor的实现类，BeanPostProcessor属于容器级生命周期控制接口，其中定义了两个方法，分别是`postProcessBeforeInitialization`和`postProcessAfterInitialization`，在容器初始化以后，Spring 会负责调用里面的 postProcessBeanFactory 方法。 两个方法分别在 Bean 初始化之前和初始化之后得到执行。注意，到这里 Bean 还没初始化
    
+      这里会注册自己定义的BeanPostProcessor接口的子类，同时 调用其中的两个方法，分别在bean初始化前和初始化后
+   
       ```
-      this.registerBeanPostProcessors(beanFactory);
+   this.registerBeanPostProcessors(beanFactory);
       ```
    
    7. 以下几个操作不是重点，不展开说：
-
+   
+      注册事件，能够捕获各种事件
+   
       ```java
    //初始化当前 ApplicationContext 的 MessageSource
       this.initMessageSource();
       
       //初始化当前 ApplicationContext 的事件广播器
-   this.initApplicationEventMulticaster();
+      this.initApplicationEventMulticaster();
       ```
 
    8. 从方法名就可以知道，典型的模板方法(钩子方法)，具体的子类可以在这里初始化一些特殊的 Bean（在初始化 singleton beans 之前）
    
       ```
-   this.onRefresh();
+      this.onRefresh();
       ```
 
    9. 注册事件监听器，监听器需要实现 ApplicationListener 接口。这也不是我们的重点，过
    
       ```
-   this.registerListeners();
+      this.registerListeners();
       ```
-
+   
    10. 重点，初始化所有的Singleton Bean，lazy-init的除外
    
-       ```
-    this.finishBeanFactoryInitialization(beanFactory);
-       ```
+      这里就又涉及到bean的生命周期问题了
+   
+      ```
+       this.finishBeanFactoryInitialization(beanFactory);
+      ```
    
    11. 最后，广播事件，ApplicationContext 初始化完成
    
@@ -1395,7 +1562,7 @@ ApplicationContext 其实就是个容器
  * 			5）注册没实现优先级接口的BeanPostProcessor；
  * 			6）注册BeanPostProcessor，实际上就是创建BeanPostProcessor对象，保存在容器中；
  * 				创建internalAutoProxyCreator的BeanPostProcessor【AnnotationAwareAspectJAutoProxyCreator】
- * 				1）、创建Bean的实例
+ * 				1）、创建Bean的实例，createBean
  * 				2）、populateBean；给bean的各种属性赋值
  * 				3）、initializeBean：初始化bean；
  * 						1）、invokeAwareMethods()：处理Aware接口的方法回调

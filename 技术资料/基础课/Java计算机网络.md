@@ -189,7 +189,7 @@ HTTP响应报文，Response消息的结构也由三部分组成，初始状态�
 状态/请求行  然后就是首部行 然后就是实体主体 
 状态行： 
 
-由协议版本，状态码和相应状态信息组成
+**由协议版本，状态码和相应状态信息组成，响应报文**
 
 首部行：
 Connection Date 
@@ -314,7 +314,7 @@ HTTP状态码列表:
 | 502✅     |           Bad Gateway           | 作为网关或者代理工作的服务器尝试执行请求时，从远程服务器接收到了一个无效的响应 |
 | 503✅     |       Service Unavailable       | 由于超载或系统维护，服务器暂时的无法处理客户端的请求。延时的长度可包含在服务器的Retry-After头信息中 |
 | 504      |        Gateway Time-out         | 充当网关或代理的服务器，未及时从远端服务器获取请求           |
-| 505      |   HTTP Version not supported    | 服务器不支持请求的HTTP协议的版本，无法完成处理               |
+| 505✅     |   HTTP Version not supported    | 服务器不支持请求的HTTP协议的版本，无法完成处理               |
 
 <hr>
 200 OK Get post请求成功后就会返回这个
@@ -333,11 +333,13 @@ HTTP状态码列表:
 
 301 Moved permanently 永久转移
 
-302 Found 临时移动 URI ，但是资源仍和原来一样，使用相同的URI
+302 Found 临时移动 URI ，但是资源仍和原来一样，使用相同的URI，这个302有可能是因为cookie导致的
 
 303 See other 看看其他地方有没有
 
-304 
+304 Not Modified 未修改
+
+305 代理
 
 
 
@@ -347,11 +349,11 @@ HTTP状态码列表:
 
 402 Payment 保存请求 将来待用
 
-403 Forbidden
+403 Forbidden 用户的相关请求被禁止，服务端理解 但是拒绝执行
 
-404 Not Found
+404 Not Found 用户
 
-405 Method Not Allowed 客户端请求被
+405 Method Not Allowed 客户端请求中的方法被禁止
 
 406 Not Acceptable 服务器无法根据客户端请求的内容特性完成请求
 
@@ -359,15 +361,15 @@ HTTP状态码列表:
 
 
 
-500 Internal Server Error
+500 Internal Server Error 服务端内部错误 未能及时返回响应
 
-501 Not Implemented 服务端不支持该请求
+501 Not Implemented 服务端不支持该请求，该请求的方法
 
-502 Bad GateWay 网关错误，访问被拦截
+502 Bad GateWay 网关错误，访问被拦截，尝试执行请求，返回无效响应
 
-503 Service Unavailable
+503 Service Unavailable 当前服务不可用 延时长度 可以放在retry-after响应头中
 
-504 GateWay time-out
+504 GateWay time-out 充当网关或者代理的服务器未能及时从远程服务器获得响应
 
 505  Http Version Not Support
 
@@ -1033,10 +1035,10 @@ TCP和UDP都是传输层（运输层）的协议
 
 
 
-### 以及IP地址的APR协议
+### 以及IP地址以及ARP协议
 
 ```
-APR协议实现了IP地址和物理地址的映射关系
+ARP协议实现了IP地址和物理地址的映射关系
 
 首先，每台主机都会在自己的ARP缓冲区中建立一个ARP列表，以表示IP地址和MAC地址的对应关系。
 当源主机需要将一个数据包要发送到目的主机时，会首先检查自己ARP列表中是否存在该IP地址对应的MAC地址：

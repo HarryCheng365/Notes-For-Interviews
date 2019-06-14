@@ -385,6 +385,7 @@ public class Solution {
 ### 8.跳台阶2✅ 
 
 ```java
+//这个是分割模型，一个线段，或者一个台阶，或者一个硬币，分割成n段，这个是典型的分割模型，和钢铁切割 绳子切割都是一致的，只不过这里变成了问切割方法，同时，切割也可以变成组合问题
 //这个也是非递归 带记忆的dp 找到子父状态转移方程就好
 //dp 就是常见于分割问题啊 如按某种条件分割，找到状态转移方程，把大问题拆解成小问题，
 //分割又多少种 类似这种问题，一般都是可以用dp的，不要去想什么中心扩展法，那是回文串专属的
@@ -407,6 +408,8 @@ public class Solution {
     }
 }
 ```
+
+
 
 ### 9.矩形覆盖✅
 
@@ -1143,40 +1146,68 @@ public class Solution {
 
 
 
-### 32.丑数 ⚠️
+### 32.丑数 ✅
 
 ```java
-//出队列，又重新入队列的操作
-public class Solution {
-    public int GetUglyNumber_Solution(int index) {
-     
-   if(index<=0)
-            return 0;
-        int[] result = new int[index];
-        int count = 0;
-        int i2 = 0;
-        int i3 = 0;
-        int i5 = 0;
- 
-        result[0] = 1;
-        int tmp = 0;
-        while (count < index-1) {
-            tmp = min(result[i2] * 2, min(result[i3] * 3, result[i5] * 5));
-            if(tmp==result[i2] * 2) i2++;//三条if防止值是一样的，不要改成else的
-            if(tmp==result[i3] * 3) i3++;
-            if(tmp==result[i5]*5) i5++;
-            result[++count]=tmp;
-        }//其实就是统计现在有几个元素了，如果用到了就用下一个
-        //min可以用Math.min进行替代
-        return result[index - 1];//这个也不算动态规划吧，其实就是不重复的全排列？
+class Solution {
+  
+        //这里指针的意思，不是含有几个因数，也不是各个序列第几小的数，而是
+        //要求之前一个丑数，分别乘上2，3，5得到大于当前最小丑数的值
+        //而这里的i2，i3，i5指的是 乘以相应因数后小于等于当前丑数的最小的值，因此是对全体丑数的一个滑动指针
+        //一开始思路就不对，自然就做不对，这下终于搞明白了
+    
+        public int nthUglyNumber(int n) {
+        int[] dp = new int[n];
+        dp[0] = 1;
+        int i2 = 0, i3 = 0, i5 = 0;
+        for (int i = 1; i < n; i++) {
+            int min = Math.min(dp[i2] * 2, Math.min(dp[i3] * 3, dp[i5] * 5));
+            if (min == dp[i2] * 2) i2++;
+            if (min == dp[i3] * 3) i3++;
+            if (min == dp[i5] * 5) i5++;
+            dp[i] = min;
+        }
+
+        return dp[n - 1];
     }
- 
-    private int min(int a, int b) {
-        return (a > b) ? b : a;
-    }
+
+
 }
 
 ```
+
+##### 情景二：超级丑数
+
+```java
+//丑数这个知识点，我应该完全掌握了
+class Solution {
+    public int nthSuperUglyNumber(int n, int[] primes) {
+        int []num=new int[primes.length];
+        int[]dp = new int[n];
+        dp[0]=1;
+        int count=1;
+        while(count<n){
+            int index=0;
+            int min=Integer.MAX_VALUE;
+            for(int i=0;i<primes.length;i++){
+                if(dp[num[i]]*primes[i]<min){
+                    min=dp[num[i]]*primes[i];
+                }  
+            }
+            
+           for(int i=0;i<primes.length;i++){
+               if(min==dp[num[i]]*primes[i])
+                   num[i]++;
+           }//去重，防止重复，这点之前考虑到了
+            dp[count]=min;
+            count++;
+        }
+        return dp[n-1];
+    }
+}
+```
+
+
 
 ### 33.长为n最大为n的数组中的重复数字 ✅
 
@@ -1987,6 +2018,141 @@ newNode.hashMap.put(array[i],new TreeNode(array[i]));
 
 }
 
+```
+
+### 63.排列组合
+
+##### 情景一：递归求全排列
+
+```java
+class Solution {
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> output = new LinkedList<>();
+        ArrayList<Integer> list = new ArrayList<>();
+        for(int i:nums){
+            list.add(i);
+        }
+        backTrack(nums.length,list,output,0);
+        return output;
+        
+        
+    }
+    
+    public void backTrack(int n,ArrayList<Integer> list,List<List<Integer>> output,int first){
+        if(first==n){
+            output.add(new ArrayList<>(list));
+        }else{
+            for(int i=first;i<n;i++){
+                Collections.swap(list,first,i);
+                backTrack(n,list,output,first+1);
+                Collections.swap(list,first,i);
+            }  
+        }
+    }
+}//全排列的思想还是很简单的，哎 没办法 自己没有复习到 就是菜
+//我原来还一直好奇，如何将当前list中的结点移除，如何添加到结果集里，是不是要一个个复制，然后添加进去，这里
+//原来一个new ArrayList<>(list)就解决了，同时 避免移除可以用交换的方法
+```
+
+##### 情景二：重复求全排列
+
+```java
+class Solution {
+    public List<List<Integer>> permuteUnique(int[] nums) {
+        List<List<Integer>> output= new LinkedList<>();
+        ArrayList<Integer> list = new ArrayList<>();
+        for(int i:nums){
+            list.add(i);
+        }
+        backTrack(nums.length,list,output,0);
+        return output;
+        
+    }
+    public void backTrack(int n,ArrayList<Integer> list,List<List<Integer>> output,int first){
+        if(first==n){
+            output.add(new ArrayList<>(list));
+        }
+        else{
+             List<Integer> temp = new LinkedList<>();
+             for(int i=first;i<n;i++){
+                 if(temp.contains(list.get(i)))
+                     continue; 
+                 else{
+                     temp.add(list.get(i));
+                     Collections.swap(list,first,i);
+                     backTrack(n,list,output,first+1);
+                     Collections.swap(list,first,i);
+                     
+                 }
+             }
+        } 
+    }
+}
+//用一个list 或者hashmap 保存扫描过的值 用来去重复，已经交换或者遇到过的值 直接跳过就好了。
+//用swap的方式 保存交换的值，而不是用从列表中删除的方法，当然 交换后记得归位
+//组合问题，组合 其实变成了求子集的问题了，和
+```
+
+
+
+### 64.动态规划 背包问题
+
+##### 情景一：0-1背包问题，放还是不放 是个问题
+
+```java
+//0-1背包问题需要一个二维数组来存，上一个用二维数组存状态的还是最长回文子串，
+//一个维度是 
+//而在切割问题中，是一维的只有背包容量，然后每一轮都会减去一个切割值，因为
+//
+```
+
+
+
+##### 情景二：无限背包（完全背包）
+
+```java
+//无限背包和切割问题类似
+```
+
+
+
+情景三：
+
+
+
+### 65.动态规划 矩阵路径
+
+情景一：
+
+
+
+### 66.动态规划 分割数组
+
+情景一：
+
+```
+//这个题意是 已经是等差数列了，求多少个（大于三个元素
+//等差数列论结尾dp[i]和dp[i-1]的关系，dp[i]比dp[i-1]靠后一位，所以以dp[i-1]结尾的所有结果，靠后挪一个位置就是dp[i]但是这样
+//还有个问题就是 前面长度会空出一格来，因此要+1；
+//所以 到底什么变量可以当作子结构 是个问题，到底以什么为标准进行dp
+//一般是 数组的长度，解的长度，target为i 和 target 为 i-1有什么区别 有的时候是二维的，比如0-1背包问题
+class Solution {
+    public int numberOfArithmeticSlices(int[] A) {
+        int []dp = new int[A.length+1];
+        for(int i=2;i<A.length;i++){
+            if(A[i]-A[i-1]==A[i-1]-A[i-2]){
+                dp[i]=dp[i-1]+1;
+            }
+                
+        }
+        int result=0;
+        for(int i:dp){
+            result+=i;
+        }
+        return result;
+        
+    }
+}
 ```
 
 

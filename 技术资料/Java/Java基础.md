@@ -962,6 +962,34 @@ String str="abcde";
 
 　　**StringBuffer：适用多线程下在字符缓冲区进行大量操作的情况**
 
+
+
+# i++, i+=1, i=i+1 区别 效率
+
+### i++与++i
+
+首先是 i++ 与 ++i 老生常谈
+
+### i=i++ 和 i=++i
+
+然后是 i=i++ 和 i=++i 有什么不同，主要是中间变量缓存机制的问题，先赋值 后自增，
+
+temp=i（右边i）
+
+i=i+1 （右边i）
+
+i=temp （左边i）
+
+### i++ , i+=1, i=i+1的效率问题
+
+i++效率最高
+
+i+=1效率其次
+
+i=i+1效率最低
+
+
+
 # lambda 表达式
 
 
@@ -1403,6 +1431,8 @@ void flush()
 ​	RandomAccessFile，该类是IO流体系中功能最丰富的文件内容访问类，既可以读取文件内容，也可以向文件输出数据。
 
 ​	RandomAccessFile支持“随机访问”的方式，程序快可以直接跳转到文件的任意地方来读写数据。由于RandomAccessFile可以自由访问文件的任意位置，**所以如果需要访问文件的部分内容，而不是把文件从头读到尾，使用RandomAccessFile将是更好的选择。**
+
+可能是用的系统调用中的内存映射？
 
 ​	与OutputStream、Writer等输出流不同的是，RandomAccessFile允许自由定义文件记录指针，RandomAccessFile可以不从开始的地方开始输出，因此RandomAccessFile可以向已存在的文件后追加内容。**如果程序需要向已存在的文件后追加内容，则应该使用RandomAccessFile。**
 

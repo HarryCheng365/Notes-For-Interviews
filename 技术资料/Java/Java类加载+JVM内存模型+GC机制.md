@@ -678,7 +678,9 @@ JVM调优 其实我看就是 对xmn
 
 Java -Xms<size> 初始Java堆的大小
 
-Java -Xmx<size> 最大Java堆的大小
+Java -Xmx<size> 最大Java堆的大小 
+
+> 其实这个是最核心的命令
 
 Java -Xss<size> Java线程堆栈大小
 
