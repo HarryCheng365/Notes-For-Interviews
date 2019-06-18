@@ -2080,13 +2080,149 @@ public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext
 - 如果你是 web 开发者，有些时候，你可能需要的是一个 Filter 或一个 Interceptor，而不一定是 AOP。
 - Spring AOP 只能作用于 Spring 容器中的 Bean，它是使用纯粹的 Java 代码实现的，只能作用于 bean 的方法。
 
-##### 补充：解释一下代理模式
+### 补充：解释一下代理模式
 
 问题： 解释一下代理模式（Proxy）
 
-- 代理模式： 代理模式就是本该我做的事，我不做，我交给代理人去完成。就比如，我生产了一些产品，我自己不卖，我委托代理商帮我卖，让代理商和顾客打交道，我自己负责主要产品的生产就可以了。 代理模式的使用，需要有本类，和代理类，本类和代理类共同实现统一的接口。然后在main中调用就可以了。本类中的业务逻辑一般是不会变动的，在我们需要的时候可以不断的添加代理对象，或者修改代理类来实现业务的变更。
-- 代理模式可以分为： 静态代理 优点：可以做到在不修改目标对象功能的前提下，对目标功能扩展 缺点：因为本来和代理类要实现统一的接口，所以会产生很多的代理类，类太多，一旦接口增加方法，目标对象和代理对象都要维护。 动态代理（JDK代理/接口代理） 代理对象，不需要实现接口，代理对象的生成，是利用JDK的API，动态的在内存中构建代理对象，需要我们指定代理对象/目标对象实现的接口的类型。 Cglib代理 特点: 在内存中构建一个子类对象，从而实现对目标对象功能的扩展。
-- 使用场景： 修改代码的时候。不用随便去修改别人已经写好的代码，如果需要修改的话，可以通过代理的方式来扩展该方法。 隐藏某个类的时候，可以为其提供代理类 当我们要扩展某个类功能的时候，可以使用代理类 当一个类需要对不同的调用者提供不同的调用权限的时候，可以使用代理类来实现。 减少本类代码量的时候。 需要提升处理速度的时候。就比如我们在访问某个大型系统的时候，一次生成实例会耗费大量的时间，我们可以采用代理模式，当用来需要的时候才生成实例，这样就能提高访问的速度。
+代理模式： 代理模式就是本该我做的事，我不做，我交给代理人去完成。就比如，我生产了一些产品，我自己不卖，我委托代理商帮我卖，让代理商和顾客打交道，我自己负责主要产品的生产就可以了。 代理模式的使用，需要有本类，和代理类，本类和代理类共同实现统一的接口。然后在main中调用就可以了。本类中的业务逻辑一般是不会变动的，在我们需要的时候可以不断的添加代理对象，或者修改代理类来实现业务的变更。
+
+
+
+##### 静态代理
+
+
+
+静态代理 优点：可以做到在不修改目标对象功能的前提下，对目标功能扩展 缺点：因为本来和代理类要实现统一的接口，所以会产生很多的代理类，类太多，一旦接口增加方法，目标对象和代理对象都要维护。
+
+```java
+/**
+ * 目标对象实现的接口
+ * @author jiyukai
+ */
+public interface BussinessInterface {
+ 
+    void execute();
+}
+ 
+/**
+ * 目标对象实现类
+ * @author jiyukai
+ */
+public class Bussiness implements BussinessInterface{
+ 
+    @Override
+    public void execute() {
+        System.out.println("执行业务逻辑...");
+    }
+}
+ 
+/**
+ * 代理类，通过实现与目标对象相同的接口
+ * 并维护一个代理对象，通过构造器传入实际目标对象并赋值
+ * 执行代理对象实现的接口方法，实现对目标对象实现的干预
+ * @author jiyukai
+ */
+public class BussinessProxy implements BussinessInterface{
+     
+    private BussinessInterface bussinessImpl;
+     
+    public BussinessProxy(BussinessInterface bussinessImpl) {
+        this.bussinessImpl = bussinessImpl;
+    }
+     
+    @Override
+    public void execute() {
+        System.out.println("前拦截...");
+        bussinessImpl.execute();
+        System.out.println("后拦截...");
+    }
+}
+```
+
+
+
+#####  动态代理
+
+JDK代理
+
+动态代理（JDK代理/接口代理） 代理对象，不需要实现接口，
+
+代理对象的生成，是利用JDK的API，动态的在内存中构建代理对象，需要我们指定代理对象/目标对象实现的接口的类型。 
+
+```java
+public class NormalHandler implements InvocationHandler {
+
+    private Object target;
+
+    public NormalHandler(Object target) {
+        this.target = target;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        L.d("man say invoked at : " + System.currentTimeMillis());
+        method.invoke(target, args);
+        return null;
+    }
+}
+
+Man man = new Man();
+NormalHandler normalHandler = new NormalHandler(man);
+AnnotationHandler annotationHandler = new AnnotationHandler();
+IPerson iPerson = (IPerson) Proxy.newProxyInstance(IPerson.class.getClassLoader(),
+                new Class[] {IPerson.class, IAnimal.class}, annotationHandler);
+iPerson.say();
+```
+
+因此这里会涉及到，指定代理接口
+
+这样执行相关对象的操作的时候，才可以用代理模式，代劳，用Proxy.newProxyInstance 返回相应接口的实现类，进而对接口执行的任务进行扩写
+
+但是当没有实现接口怎么办？
+
+##### JDK动态代理
+
+- 代理类继承了Proxy类，同时实现了要代理的接口
+- 因为Java不支持多继承，所以JDK动态代理，不能解决没有实现接口的类
+
+
+
+##### CGLIB代理：
+
+那就只能用继承的办法了，只是它在运行期间生成的代理对象是针对目标类扩展的子类，CGLIB是高效的代码生成包，底层是靠ASM操作字节码实现的，性能比JDK强，
+
+但是也有缺点，就是需要将CGLIB的包放在classpath下？？？
+
+cglib的方法了，cglib是通过继承的方法，创建子类，从而实现对目标对象功能的扩展。
+
+但是静态代理也有其缺点，静态代理，接口和代理类是一对一的，所以当有多个接口需要代理的时候，就需要实现
+
+
+
+
+
+
+
+
+
+##### 补充：适配器模式？
+
+适配器模式可以让两个本来没有关联的类放在一起运行，两个类一个目标对象，一个待转换对象，需要将两个实现了不同接口的类，待转换对象，转换成一个目标对象，让第一个目标对象可以访问到待转换对象的数据
+
+```java
+即 
+Target target = new Target();
+Target target = new Adapter();
+target.execute(Type type);//这种方式
+```
+
+
+
+Cglib代理 特点: 在内存中构建一个子类对象，从而实现对目标对象功能的扩展。
+
+
+
+使用场景： 修改代码的时候。不用随便去修改别人已经写好的代码，如果需要修改的话，可以通过代理的方式来扩展该方法。 隐藏某个类的时候，可以为其提供代理类 当我们要扩展某个类功能的时候，可以使用代理类 当一个类需要对不同的调用者提供不同的调用权限的时候，可以使用代理类来实现。 减少本类代码量的时候。 需要提升处理速度的时候。就比如我们在访问某个大型系统的时候，一次生成实例会耗费大量的时间，我们可以采用代理模式，当用来需要的时候才生成实例，这样就能提高访问的速度。
 
 ### 实例演示
 
@@ -2273,20 +2409,13 @@ public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext
 5. 整体流程总结：
 
    - 导入aop模块；Spring AOP：(spring-aspects)
-
-   - 定义一个业务逻辑类（MathCalculator）；在业务逻辑运行的时候将日志进行打印（方法之前、方法运行结束、方法出现异常，xxx）
-
+- 定义一个业务逻辑类（MathCalculator）；在业务逻辑运行的时候将日志进行打印（方法之前、方法运行结束、方法出现异常，xxx）
    - 定义一个日志切面类（LogAspects）：如本例子中，切面类里面的方法需要动态感知MathCalculator.div运行到哪里然后执行；
-
-   - 给切面类的目标方法标注何时何地运行（通知注解）；
-
+- 给切面类的目标方法标注何时何地运行（通知注解）；
    - 将切面类和业务逻辑类（目标方法所在类）都加入到容器中;
-
-   - 必须告诉Spring哪个类是切面类(给切面类上加一个注解：@Aspect)
-
+- 必须告诉Spring哪个类是切面类(给切面类上加一个注解：@Aspect)
    - 给配置类中加 @EnableAspectJAutoProxy 【开启基于注解的aop模式】
 
-   
 
-
+切面，切点的问题，切面类肯定用@Aspects进行注解，必须告诉Spring哪个是切面类
 

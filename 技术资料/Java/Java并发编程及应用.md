@@ -1090,7 +1090,7 @@ java线程池需要传入一个Queue参数(workQueue)用来存放执行的任务
 
 4. Executors.newSingleThreadScheduledExcutor()与Executors.newSheduledThreadPool(int poolSize)：定时或周期性的工作调度，两者的区别在于应用于单一工作线程和多个工作线程。
 
-5. Executors.newWorkStealingPool()：内部会构建ForkJoinPool()，利用working-stealing算法，并行地处理任务，不保证处理顺序。
+5. Executors.newWorkStealingPool()：内部会构建ForkJoinPool()，利用working-stealing算法，并行地处理任务，不保证处理顺序//因此需要线程池内部线程无序
 
    ForkJoinPool() Work-Stealing 算法？并行的处理任务？
 

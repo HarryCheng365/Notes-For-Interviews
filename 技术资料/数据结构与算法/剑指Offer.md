@@ -219,6 +219,8 @@ public class Solution {
           //取出根的位置，界定 
         head.left=preIn(p,pi+1,pi+index-ni,n,ni,index-1,map);//因为可能是右子树的左子树，所以
           //pi+index-ni
+          // index-ni 就是 左子树的长度 ，所以 pi+1,pi+index-ni
+          //和 pi+index-ni+1,pj 原先长度 注意这里的左子树长度就好了
         head.right=preIn(p,pi+index-ni+1,pj,n,index+1,nj,map);
           //这是把左右子树列出来了 ni是最左值，也是起始值
           //如果pi+index-n1+1 取根的右面，如果小了
@@ -2093,6 +2095,12 @@ class Solution {
 //组合问题，组合 其实变成了求子集的问题了，和
 ```
 
+##### 情景三：错位重排 错排
+
+```
+
+```
+
 
 
 ### 64.动态规划 背包问题
@@ -2103,7 +2111,33 @@ class Solution {
 //0-1背包问题需要一个二维数组来存，上一个用二维数组存状态的还是最长回文子串，
 //一个维度是 
 //而在切割问题中，是一维的只有背包容量，然后每一轮都会减去一个切割值，因为
+//0-1背包 每件物品只有一件，所以每件物品会有放入和不放入的情况，如果放入了就变成了dp[i-1][j-w]的
 //
+int [][]dp = new int[N+1][W+1];
+for(int i=1;i<=N;i++){
+  int w=weights[i-1],v = valus[i-1];
+  for(int j=1;j<=W;j++){
+    if(j>=w){
+      dp[i][j]=Math.max(dp[i-1][j],dp[i-1][j-w]+v);
+    }else{
+      dp[i][j]=dp[i-1][j];
+      //这是容量不够的情况，j还会继续扩大的，这是对物品和容量w生成了二维数组
+    }
+  }
+  //从实际意义 1，1 开始的，所以
+  
+}
+//关于节省空间，
+for(int i=1;i<=N;i++){
+  int w =weights[i-1], v=values[i-1];
+  for(int j=W,j>=1;j--){
+    if(j>=w)
+    	dp[j]=Math.max(dp[j],dp[j-w]+v);
+    //dp[j]=max(dp[j],do[j-w]+v)对照之前方程左侧略去了i-1 所以
+    //这里是物品只有一件时，所有w下 可能的取值，所以 当i增长dp[j] 和dp[j-w]自然就变成了dp[i-1][j]和
+    //dp[i-1][j-w];
+  }
+}
 ```
 
 
