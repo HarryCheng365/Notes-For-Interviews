@@ -2101,6 +2101,32 @@ class Solution {
 
 ```
 
+##### 情景四：括号生成
+
+```java
+class Solution {
+    public List<String> generateParenthesis(int n) {
+        List<String> ans = new ArrayList();
+        backtrack(ans, "", 0, 0, n);
+        return ans;
+    }
+
+    public void backtrack(List<String> ans, String cur, int open, int close, int max){
+        if (cur.length() == max * 2) {
+            ans.add(cur);
+            return;
+        }
+
+        if (open < max)
+            backtrack(ans, cur+"(", open+1, close, max);
+        if (close < open)
+            backtrack(ans, cur+")", open, close+1, max);
+        //有点像建树的感觉？带回溯的搜索
+    }
+}
+
+```
+
 
 
 ### 64.动态规划 背包问题
@@ -2186,6 +2212,20 @@ class Solution {
         return result;
         
     }
+}
+```
+
+
+
+67.给定随机数生成随机数
+
+```java
+a>b的情况
+int Randb(){
+    int x = ~(1<<31); // max int
+    while(x > b*(A/b)) // b*(A/b)表示最接近A且小于A的b的倍数
+        x = RandA();
+    return x%b + 1;
 }
 ```
 
